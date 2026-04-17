@@ -3,7 +3,7 @@
 #include "FT6336U.h"
 
 /***************************************************************************************
- * 屏幕参数配置 (Screen Configuration)
+ * Screen Configuration
  ***************************************************************************************/
 #if TFT_DIRECTION == 0 || TFT_DIRECTION == 2
 static const uint16_t screenWidth  = 240;
@@ -13,29 +13,29 @@ static const uint16_t screenWidth  = 320;
 static const uint16_t screenHeight = 240;
 #endif
 
-// LVGL 缓冲区大小设置 (通常设置为屏幕宽度的 1/10)
+// LVGL draw buffer size (typically set to 1/10 of the screen width)
 #define LVGL_BUF_SIZE (screenWidth * 10)
 
 /***************************************************************************************
- * 全局变量定义 (Global Variables)
+ * Global Variables
  ***************************************************************************************/
-// LVGL 绘图缓冲区描述符
+// LVGL draw buffer descriptor
 static lv_disp_draw_buf_t draw_buf;
-// 实际的显示缓冲区内存
+// Actual memory used by the display buffer
 static lv_color_t buf[LVGL_BUF_SIZE];
 
-// 硬件驱动实例
-TFT_eSPI tft = TFT_eSPI(screenWidth, screenHeight); /* TFT 显示屏实例 */
-FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN); /* 电容触摸屏实例 */
+// Hardware driver instances
+TFT_eSPI tft = TFT_eSPI(screenWidth, screenHeight); /* TFT display instance */
+FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN); /* Capacitive touch panel instance */
 
 /***************************************************************************************
- * 回调函数 (Callback Functions)
+ * Callback Functions
  ***************************************************************************************/
 
 #if LV_USE_LOG != 0
 /**
- * @brief 串口调试打印回调
- * 用于将 LVGL 的内部日志重定向到 Serial
+ * @brief Serial debug print callback
+ * Used to redirect LVGL internal logs to Serial.
  */
 void my_print(const char * buf)
 {
@@ -45,51 +45,52 @@ void my_print(const char * buf)
 #endif
 
 /**
- * @brief 显示刷新回调函数 (Flush Callback)
- * 当 LVGL 完成一部分图像的渲染后，会调用此函数将缓冲区内容发送到屏幕
- * 
- * @param disp    显示驱动指针
- * @param area    本次刷新的区域坐标
- * @param color_p 颜色数据指针
+ * @brief Display flush callback
+ * Called after LVGL finishes rendering part of the image, and sends the
+ * buffer content to the screen.
+ *
+ * @param disp    Display driver pointer
+ * @param area    Area to refresh this time
+ * @param color_p Pointer to the color data
  */
 void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
 {
     uint32_t w = ( area->x2 - area->x1 + 1 );
     uint32_t h = ( area->y2 - area->y1 + 1 );
 
-    // 使用 TFT_eSPI 的 startWrite/endWrite 锁定 SPI 总线以提高效率
+    // Use startWrite/endWrite to lock the SPI bus for better efficiency.
     tft.startWrite();
-    
-    // 设置绘图窗口并推送颜色数据
+
+    // Set the drawing window and push the color data.
     tft.setAddrWindow( area->x1, area->y1, w, h );
     tft.pushColors((uint16_t*)&color_p->full, w * h, true );
-    
+
     tft.endWrite();
 
-    // 通知 LVGL 刷新完成
+    // Notify LVGL that flushing is complete.
     lv_disp_flush_ready( disp );
 }
 
 /**
- * @brief 触摸输入读取回调函数 (Input Read Callback)
- * LVGL 定期调用此函数以获取触摸屏的状态
- * 
- * @param indev_driver 输入设备驱动指针
- * @param data         用于存储读取到的输入数据
+ * @brief Touch input read callback
+ * Called periodically by LVGL to get the current touch screen state.
+ *
+ * @param indev_driver Input device driver pointer
+ * @param data         Storage for the input data read this time
  */
 void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
 {
-    // 读取触摸屏状态
-    FT6336U_TouchPointType tp = ft6336u.scan(); 
-    
-    // 如果没有触摸点
+    // Read the touch panel status.
+    FT6336U_TouchPointType tp = ft6336u.scan();
+
+    // No touch point detected.
     if( tp.touch_count == 0 )
     {
-        data->state = LV_INDEV_STATE_REL; // 释放状态
+        data->state = LV_INDEV_STATE_REL; // Released state
     }
     else
     {
-        // 获取第一个触摸点的坐标
+        // Get the coordinates of the first touch point.
         int x = tp.tp[0].x;
         int y = tp.tp[0].y;
 
@@ -111,61 +112,61 @@ void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
         // 简单的边界检查，确保坐标在屏幕范围内
         if(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight)
         {
-            data->state = LV_INDEV_STATE_PR; // 按下状态
+            data->state = LV_INDEV_STATE_PR; // Pressed state
             data->point.x = x;
             data->point.y = y;
         }
-        else 
+        else
         {
-            data->state = LV_INDEV_STATE_REL; // 坐标无效视为释放
+            data->state = LV_INDEV_STATE_REL; // Treat invalid coordinates as released
         }
     }
 }
 
 /***************************************************************************************
- * Display 类成员函数实现
+ * Display Class Member Function Implementations
  ***************************************************************************************/
 
 void Display::init(void)
 {
-    // 1. 初始化触摸驱动
-    ft6336u.begin(); 
+    // 1. Initialize the touch controller.
+    ft6336u.begin();
 
-    // 2. 注册 LVGL 日志回调 (如果启用)
+    // 2. Register the LVGL log callback, if enabled.
 #if LV_USE_LOG != 0
     lv_log_register_print_cb( my_print );
 #endif
 
-    // 3. 初始化 LVGL 核心库
+    // 3. Initialize the LVGL core.
     lv_init();
 
-    // 4. 初始化 TFT 屏幕
-    tft.begin();          
-    tft.setRotation( TFT_DIRECTION ); /* 设置屏幕方向 */
-    tft.invertDisplay(0); /* 反转颜色 (根据屏幕面板特性调整，通常 IPS 需要反转) */
+    // 4. Initialize the TFT display.
+    tft.begin();
+    tft.setRotation( TFT_DIRECTION ); /* Set the display orientation */
+    tft.invertDisplay(0); /* Invert colors if required by the panel characteristics, often needed for IPS panels */
 
-    // 5. 初始化显示缓冲区
+    // 5. Initialize the display buffer.
     lv_disp_draw_buf_init( &draw_buf, buf, NULL, LVGL_BUF_SIZE );
 
-    // 6. 初始化并注册显示驱动
+    // 6. Initialize and register the display driver.
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init( &disp_drv );
     disp_drv.hor_res = screenWidth;
     disp_drv.ver_res = screenHeight;
-    disp_drv.flush_cb = my_disp_flush; // 设置刷新回调
-    disp_drv.draw_buf = &draw_buf;     // 设置缓冲区
+    disp_drv.flush_cb = my_disp_flush; // Set the flush callback
+    disp_drv.draw_buf = &draw_buf;     // Set the draw buffer
     lv_disp_drv_register( &disp_drv );
 
-    // 7. 初始化并注册输入设备驱动 (触摸屏)
+    // 7. Initialize and register the input device driver (touch panel).
     static lv_indev_drv_t indev_drv;
     lv_indev_drv_init( &indev_drv );
-    indev_drv.type = LV_INDEV_TYPE_POINTER; // 指针类型设备
-    indev_drv.read_cb = my_touchpad_read;    // 设置读取回调
+    indev_drv.type = LV_INDEV_TYPE_POINTER; // Pointer-type input device
+    indev_drv.read_cb = my_touchpad_read;   // Set the read callback
     lv_indev_drv_register( &indev_drv );
 }
 
 void Display::routine(void)
 {
-    // 处理 LVGL 的内部定时任务、动画和事件
+    // Handle LVGL internal timer tasks, animations, and events.
     lv_task_handler();
 }
