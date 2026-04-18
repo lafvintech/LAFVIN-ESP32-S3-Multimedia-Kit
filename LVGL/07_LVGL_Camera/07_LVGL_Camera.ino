@@ -44,15 +44,15 @@ void setup() {
   // 1. Initialize the SD card
   Serial.println("[1/4] Initializing SD card...");
   if (!sdcard_init()) {
-    Serial.println("鉁?SD card init failed!");
+    Serial.println("SD card init failed!");
   } else {
-    Serial.println("鉁?SD card ready\n");
+    Serial.println("SD card ready\n");
   }
 
   // 2. Initialize the camera
   Serial.println("[2/4] Initializing camera...");
   if (!camera_init()) {
-    Serial.println("鉁?Camera init failed!");
+    Serial.println("Camera init failed!");
     Serial.println("System halted. Please check hardware.");
     while(1) { delay(1000); }  // Stop execution
   }
@@ -63,7 +63,7 @@ void setup() {
   screen.init();
 
   // Print LVGL version information
-  Serial.printf("鉁?LVGL v%d.%d.%d initialized\n\n",
+  Serial.printf("LVGL v%d.%d.%d initialized\n\n",
     lv_version_major(),
     lv_version_minor(),
     lv_version_patch()
@@ -79,9 +79,9 @@ void setup() {
   Serial.println("  System Ready!");
   Serial.println("========================================");
   Serial.println("Tips:");
-  Serial.println("  鈥?Tap camera button to take photo");
-  Serial.println("  鈥?Swipe left/right to toggle mirror");
-  Serial.println("  鈥?Swipe up/down to toggle flip");
+  Serial.println("  Tap camera button to take photo");
+  Serial.println("  Swipe left/right to toggle mirror");
+  Serial.println("  Swipe up/down to toggle flip");
   Serial.println("========================================\n");
 }
 

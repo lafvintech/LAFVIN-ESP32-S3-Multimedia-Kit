@@ -75,12 +75,12 @@ void setup() {
         // Active buzzer: standard GPIO mode
         pinMode(BUZZER_PIN, OUTPUT);
         digitalWrite(BUZZER_PIN, LOW);
-        Serial.println("Buzzer Type: Active (鏈夋簮)");
+        Serial.println("Buzzer Type: Active");
     } else {
         // Passive buzzer: PWM mode
         ledcAttach(BUZZER_PIN, BUZZER_FREQ, BUZZER_RESOLUTION);
         ledcWriteTone(BUZZER_PIN, 0);  // Initially off
-        Serial.println("Buzzer Type: Passive (鏃犳簮)");
+        Serial.println("Buzzer Type: Passive");
         Serial.printf("Frequency: %d Hz\n", BUZZER_FREQ);
     }
 
@@ -134,7 +134,7 @@ void setup() {
     lv_obj_align(label_mute_btn, LV_ALIGN_CENTER, 60, 110);
     lv_obj_set_style_text_color(label_mute_btn, lv_color_make(150, 0, 0), 0);
 
-    Serial.println("鉁?Setup complete!");
+    Serial.println("Setup complete!");
     Serial.println("Left button: Turn ON buzzer");
     Serial.println("Right button: Turn OFF buzzer\n");
 }

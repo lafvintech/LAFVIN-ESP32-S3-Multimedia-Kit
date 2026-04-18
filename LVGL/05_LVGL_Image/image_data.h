@@ -3,11 +3,11 @@
 
 #include <lvgl.h>
 
-// 声明 StarryNight 图片数据（定义在 StarryNight.c 中）
-// 这是一个 240x320 的图片，使用 LVGL Image Converter 生成
-// 在线工具：https://lvgl.io/tools/imageconverter
+// Declare StarryNight image data (defined in StarryNight.c)
+// This is a 240x320 image, generated using LVGL Image Converter
+// Online tools: https:--lvgl.io-tools-imageconverter
 
-// 外部声明：StarryNight 图片描述符
+//External declaration: StarryNight image descriptor
 extern const lv_img_dsc_t StarryNight;
 
 #endif // IMAGE_DATA_H

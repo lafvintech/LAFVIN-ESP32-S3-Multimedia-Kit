@@ -3,23 +3,23 @@
 #include "SD_MMC.h"
 
 /***************************************************************************************
- * 全局链表指针 (Global List Pointers)
+ * Global List Pointers
  ***************************************************************************************/
-list_link *list_music = NULL;     // 音乐文件链表
-list_link *list_picture = NULL;   // 图片文件链表
-list_link *list_logo = NULL;      // Logo 文件链表
+list_link *list_music = NULL;     // Music file list
+list_link *list_picture = NULL;   // Picture file list
+list_link *list_logo = NULL;      // Logo file list
 
 /***************************************************************************************
- * SD 卡初始化 (SD Card Initialization)
+ * SD Card Initialization
  ***************************************************************************************/
 
 int sdcard_init(void) {
   Serial.println("Initializing SD card...");
   
-  // 配置 SD_MMC 引脚
+  // Configure SD_MMC pins
   SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
-  
-  // 初始化 SD_MMC (1-bit 模式)
+
+  // Initialize SD_MMC (1-bit mode)
   int success = SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5);
   
   if (!success) {
@@ -27,7 +27,7 @@ int sdcard_init(void) {
     return 0;
   }
   
-  // 打印 SD 卡信息
+  // Print SD card info
   uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
   Serial.printf("✓ SD card mounted successfully\n");
   Serial.printf("  Card size: %llu MB\n", cardSize);
@@ -52,7 +52,7 @@ int sdcard_init(void) {
 }
 
 /***************************************************************************************
- * 文件夹扫描函数 (Folder Scanning Functions)
+ * Folder Scanning Functions
  ***************************************************************************************/
 
 void setup_list_head_music(void) {
@@ -89,7 +89,7 @@ void setup_list_head_logo(void) {
 }
 
 /***************************************************************************************
- * 文件操作函数 (File Operations)
+ * File Operations
  ***************************************************************************************/
 
 void write_file(char *path, uint8_t *buf, long size) {
@@ -126,7 +126,7 @@ void write_rgb565_to_bmp(char *path, uint8_t *buf, long size, long height, long 
     return;
   }
   
-  // BMP 文件头 (70 字节)
+  // BMP file header (70 bytes)
   uint8_t bmp_header[] = {
     0x42, 0x4d, 0x48, 0xc2, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
     0x00, 0x00, 0xf0, 0x00, 0x00, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
@@ -137,15 +137,15 @@ void write_rgb565_to_bmp(char *path, uint8_t *buf, long size, long height, long 
   
   uint8_t bmp_footer[] = {0x00, 0x00};
   
-  // 写入 BMP 头
+  // Write BMP header
   file.write(bmp_header, 70);
-  
-  // BMP 格式要求从下到上写入行数据
+
+  // BMP format requires writing rows bottom-to-top
   for (int i = height - 1; i >= 0; i--) {
     file.write(&buf[i * width * 2], width * 2);
   }
   
-  // 写入尾部填充
+  // Write footer padding
   file.write(bmp_footer, 2);
   file.close();
   
@@ -160,7 +160,7 @@ void create_folder(char *path) {
   File root = SD_MMC.open(path);
   
   if (!root) {
-    // 文件夹不存在,尝试创建
+    // Folder does not exist, attempt to create it
     if (SD_MMC.mkdir(path)) {
       Serial.printf("✓ Folder created: %s\n", path);
     } else {
@@ -176,7 +176,7 @@ void delete_file(char *path) {
     return;
   }
   
-  // 移除路径前缀 (如果有)
+  // Remove path prefix if present
   String filepath = String(path);
   if (filepath.startsWith("//")) {
     filepath.remove(0, 2);
@@ -190,7 +190,7 @@ void delete_file(char *path) {
 }
 
 /***************************************************************************************
- * 链表操作函数 (Linked List Operations)
+ * Linked List Operations
  ***************************************************************************************/
 
 list_link *sdcard_read_folder(char *dirname, char *extension) {
@@ -199,7 +199,7 @@ list_link *sdcard_read_folder(char *dirname, char *extension) {
     return NULL;
   }
   
-  // 创建头节点
+  // Create head node
   list_link *head = list_create_node(0, dirname);
   if (head == NULL) {
     return NULL;
@@ -217,12 +217,12 @@ list_link *sdcard_read_folder(char *dirname, char *extension) {
     return head;
   }
   
-  // 遍历文件夹
+  // Iterate through folder
   File file = root.openNextFile();
   while (file) {
     String filename = String(file.name());
-    
-    // 检查文件扩展名
+
+    // Check file extension
     if (filename.endsWith(extension)) {
       list_insert_tail(head, (char *)filename.c_str());
     }
@@ -247,7 +247,7 @@ list_link *list_create_node(int index, char *name) {
   
   node->index_number = index;
   memset(node->file_name, 0, FILE_NAME_LENGTH);
-  strncpy(node->file_name, name, FILE_NAME_LENGTH - 1);  // 使用 strncpy 防止溢出
+  strncpy(node->file_name, name, FILE_NAME_LENGTH - 1);  // Use strncpy to prevent overflow
   node->file_prev = NULL;
   node->file_next = NULL;
   
@@ -259,19 +259,19 @@ void list_insert_tail(list_link *phead, char *name) {
     return;
   }
   
-  // 找到链表尾部
+  // Find tail of list
   list_link *tail = phead;
   while (tail->file_next != NULL) {
     tail = tail->file_next;
   }
-  
-  // 创建新节点
+
+  // Create new node
   list_link *new_node = list_create_node(tail->index_number + 1, name);
   if (new_node == NULL) {
     return;
   }
-  
-  // 插入到尾部
+
+  // Insert at tail
   new_node->file_prev = tail;
   tail->file_next = new_node;
 }
@@ -297,13 +297,13 @@ void list_printf_back(list_link *phead) {
     return;
   }
   
-  // 找到尾节点
+  // Find tail node
   list_link *tail = phead;
   while (tail->file_next != NULL) {
     tail = tail->file_next;
   }
-  
-  // 反向打印
+
+  // Print in reverse
   Serial.println("=== File List (Reverse) ===");
   while (tail != NULL) {
     Serial.printf("[%d] %s\n", tail->index_number, tail->file_name);
