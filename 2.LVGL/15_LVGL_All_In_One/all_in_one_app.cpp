@@ -3,6 +3,7 @@
 #include "home_ui.h"
 
 #include "Buzzer_ui.h"
+#include "File_Manager_ui.h"
 #include "RGB_ui.h"
 #include "Wifi_ui.h"
 #include "camera.h"
@@ -31,6 +32,7 @@ static bool s_heartrate_ready = false;
 static bool s_rgb_ready = false;
 static bool s_buzzer_ready = false;
 static bool s_wifi_ready = false;
+static bool s_file_manager_ready = false;
 
 static bool s_sd_attempted = false;
 static bool s_sd_ready = false;
@@ -106,6 +108,8 @@ lv_obj_t *screen_for(AppScreen screen) {
       return g_buzzer_ui.screen;
     case APP_SCREEN_WIFI:
       return g_wifi_ui.screen;
+    case APP_SCREEN_FILE_MANAGER:
+      return g_file_manager_ui.screen;
     default:
       return nullptr;
   }
@@ -160,12 +164,17 @@ void all_in_one_app_init(void) {
   // The shell starts with storage and the home screen ready.
   ensure_sd_ready();
   ensure_home_ready();
+  home_ui_set_wifi_visible(WiFi.status() == WL_CONNECTED);
   all_in_one_show_home();
 }
 
 void all_in_one_app_loop(void) {
   // Keep time fresh even while the user is on the home screen.
   refresh_clock_label();
+  home_ui_set_wifi_visible(WiFi.status() == WL_CONNECTED);
+  if (s_file_manager_ready) {
+    file_manager_ui_background_loop();
+  }
 
   // Dispatch the per-frame loop only to the currently active module.
   switch (s_current_screen) {
@@ -186,6 +195,9 @@ void all_in_one_app_loop(void) {
       break;
     case APP_SCREEN_WIFI:
       wifi_ui_loop();
+      break;
+    case APP_SCREEN_FILE_MANAGER:
+      file_manager_ui_loop();
       break;
     default:
       break;
@@ -271,6 +283,14 @@ void all_in_one_open_screen(AppScreen screen) {
       if (!s_wifi_ready) {
         wifi_ui_setup(&g_wifi_ui);
         s_wifi_ready = true;
+      }
+      break;
+
+    case APP_SCREEN_FILE_MANAGER:
+      ensure_sd_ready();
+      if (!s_file_manager_ready) {
+        file_manager_ui_setup(&g_file_manager_ui);
+        s_file_manager_ready = true;
       }
       break;
 

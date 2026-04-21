@@ -12,6 +12,8 @@ typedef struct {
   lv_obj_t *page_two;
   lv_obj_t *time_label_page_one;
   lv_obj_t *time_label_page_two;
+  lv_obj_t *wifi_label_page_one;
+  lv_obj_t *wifi_label_page_two;
 } HomeUI;
 
 extern HomeUI g_home_ui;
@@ -24,6 +26,9 @@ void home_ui_show_page(uint8_t page_index, bool animate);
 
 // Update the clock shown in the home header.
 void home_ui_set_time_text(const char *text);
+
+// Show or hide the WiFi indicator in the home header.
+void home_ui_set_wifi_visible(bool visible);
 
 // Read back the currently visible home page.
 uint8_t home_ui_get_page(void);

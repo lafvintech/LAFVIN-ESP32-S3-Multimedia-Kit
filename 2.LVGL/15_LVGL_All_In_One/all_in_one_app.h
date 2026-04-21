@@ -14,6 +14,7 @@ enum AppScreen {
   APP_SCREEN_RGB,
   APP_SCREEN_BUZZER,
   APP_SCREEN_WIFI,
+  APP_SCREEN_FILE_MANAGER,
 };
 
 // Initialize the app shell and load the home screen.
