@@ -5,8 +5,13 @@
 /***************************************************************************************
  * Screen Configuration
  ***************************************************************************************/
+#if TFT_DIRECTION == 0 || TFT_DIRECTION == 2
 static const uint16_t screenWidth  = 240;
 static const uint16_t screenHeight = 320;
+#else
+static const uint16_t screenWidth  = 320;
+static const uint16_t screenHeight = 240;
+#endif
 
 // LVGL draw buffer size (typically set to 1/10 of the screen width)
 #define LVGL_BUF_SIZE (screenWidth * 10)
@@ -88,6 +93,21 @@ void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
         // Get the coordinates of the first touch point.
         int x = tp.tp[0].x;
         int y = tp.tp[0].y;
+
+#if TFT_DIRECTION == 1
+        int rotated_x = y;
+        int rotated_y = 240 - 1 - x;
+        x = rotated_x;
+        y = rotated_y;
+#elif TFT_DIRECTION == 2
+        x = 240 - 1 - x;
+        y = 320 - 1 - y;
+#elif TFT_DIRECTION == 3
+        int rotated_x = 320 - 1 - y;
+        int rotated_y = x;
+        x = rotated_x;
+        y = rotated_y;
+#endif
 
         // Basic boundary check to ensure the coordinates are on screen.
         if(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight)

@@ -96,7 +96,7 @@ void setup() {
     // Decrement button
     lv_obj_t * btn_minus = lv_btn_create(lv_scr_act());
     lv_obj_set_size(btn_minus, 70, 40);
-    lv_obj_align(btn_minus, LV_ALIGN_CENTER, -50, -10);
+    lv_obj_align(btn_minus, LV_ALIGN_CENTER, -50, 10);
     lv_obj_add_event_cb(btn_minus, event_handler, LV_EVENT_CLICKED, (void*)-1);
 
     lv_obj_t * l_min = lv_label_create(btn_minus);
@@ -106,7 +106,7 @@ void setup() {
     // Increment button
     lv_obj_t * btn_plus = lv_btn_create(lv_scr_act());
     lv_obj_set_size(btn_plus, 70, 40);
-    lv_obj_align(btn_plus, LV_ALIGN_CENTER, 50, -10);
+    lv_obj_align(btn_plus, LV_ALIGN_CENTER, 50, 10);
     lv_obj_add_event_cb(btn_plus, event_handler, LV_EVENT_CLICKED, (void*)1);
 
     lv_obj_t * l_plus = lv_label_create(btn_plus);
@@ -117,7 +117,7 @@ void setup() {
     // Button 3: Show Text
     lv_obj_t * btn_show = lv_btn_create(lv_scr_act());
     lv_obj_set_size(btn_show, 90, 40);
-    lv_obj_align(btn_show, LV_ALIGN_CENTER, -55, 60); // Lower-left
+    lv_obj_align(btn_show, LV_ALIGN_CENTER, -55, 70); // Lower-left
     lv_obj_add_event_cb(btn_show, event_handler, LV_EVENT_CLICKED, (void*)2);
 
     lv_obj_t * l_show = lv_label_create(btn_show);
@@ -127,7 +127,7 @@ void setup() {
     // Button 4: Colorize
     lv_obj_t * btn_color = lv_btn_create(lv_scr_act());
     lv_obj_set_size(btn_color, 90, 40);
-    lv_obj_align(btn_color, LV_ALIGN_CENTER, 55, 60); // Lower-right
+    lv_obj_align(btn_color, LV_ALIGN_CENTER, 55, 70); // Lower-right
     lv_obj_add_event_cb(btn_color, event_handler, LV_EVENT_CLICKED, (void*)3);
 
     lv_obj_t * l_color = lv_label_create(btn_color);

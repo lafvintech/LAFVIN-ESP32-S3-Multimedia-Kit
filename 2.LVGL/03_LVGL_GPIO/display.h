@@ -26,7 +26,7 @@
 // 1: Landscape
 // 2: Portrait Inverted
 // 3: Landscape Inverted
-#define TFT_DIRECTION 0
+#define TFT_DIRECTION 1
 
 /**
  * @class Display

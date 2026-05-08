@@ -23,8 +23,8 @@ void setup() {
     SD_MMC.begin("/sdcard", true);
 
     audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-    audio.setVolume(6); // default 0-21
-    audio.connecttoFS(SD_MMC, "music/test.mp3");
+    audio.setVolume(15); // default 0-21
+    audio.connecttoFS(SD_MMC, "music/test1.mp3");
 }
 
 void loop() {

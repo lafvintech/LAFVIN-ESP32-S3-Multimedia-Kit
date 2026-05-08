@@ -151,10 +151,10 @@ void setup() {
         // Two-column layout: left column (i=0,1,2), right column (i=3,4,5)
         int col = i / 3;  // 0 or 1
         int row = i % 3;  // 0, 1, or 2
-        int x_offset = (col == 0) ? -60 : 60;
-        int y_offset = start_y + row * spacing;
+        int x_pos = (col == 0) ? 20 : 180;
+        int y_pos = start_y + row * spacing;
 
-        lv_obj_align(colors[i].checkbox, LV_ALIGN_TOP_MID, x_offset, y_offset);
+        lv_obj_set_pos(colors[i].checkbox, x_pos, y_pos);
 
         // Set the checkbox indicator color.
         lv_obj_set_style_bg_color(colors[i].checkbox,

@@ -125,13 +125,13 @@ void setup() {
     // Add the label for the left button
     lv_obj_t * label_buzzer = lv_label_create(lv_scr_act());
     lv_label_set_text(label_buzzer, "ON");
-    lv_obj_align(label_buzzer, LV_ALIGN_CENTER, -60, 110);
+    lv_obj_align(label_buzzer, LV_ALIGN_CENTER, -60, 80);
     lv_obj_set_style_text_color(label_buzzer, lv_color_make(0, 150, 0), 0);
 
     // Add the label for the right button
     lv_obj_t * label_mute_btn = lv_label_create(lv_scr_act());
     lv_label_set_text(label_mute_btn, "OFF");
-    lv_obj_align(label_mute_btn, LV_ALIGN_CENTER, 60, 110);
+    lv_obj_align(label_mute_btn, LV_ALIGN_CENTER, 60, 80);
     lv_obj_set_style_text_color(label_mute_btn, lv_color_make(150, 0, 0), 0);
 
     Serial.println("Setup complete!");

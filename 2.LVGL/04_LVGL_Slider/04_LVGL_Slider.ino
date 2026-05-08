@@ -111,9 +111,9 @@ void setup() {
     create_color_slider(lv_palette_main(LV_PALETTE_BLUE), 100, &slider_b, &label_val_b);
 
     // Add R/G/B labels to the left of the sliders.
-    lv_obj_t* l_r = lv_label_create(lv_scr_act()); lv_label_set_text(l_r, "R"); lv_obj_align_to(l_r, slider_r, LV_ALIGN_OUT_LEFT_MID, -10, 0);
-    lv_obj_t* l_g = lv_label_create(lv_scr_act()); lv_label_set_text(l_g, "G"); lv_obj_align_to(l_g, slider_g, LV_ALIGN_OUT_LEFT_MID, -10, 0);
-    lv_obj_t* l_b = lv_label_create(lv_scr_act()); lv_label_set_text(l_b, "B"); lv_obj_align_to(l_b, slider_b, LV_ALIGN_OUT_LEFT_MID, -10, 0);
+    lv_obj_t* l_r = lv_label_create(lv_scr_act()); lv_label_set_text(l_r, "R"); lv_obj_align_to(l_r, slider_r, LV_ALIGN_OUT_LEFT_MID, -20, 0);
+    lv_obj_t* l_g = lv_label_create(lv_scr_act()); lv_label_set_text(l_g, "G"); lv_obj_align_to(l_g, slider_g, LV_ALIGN_OUT_LEFT_MID, -20, 0);
+    lv_obj_t* l_b = lv_label_create(lv_scr_act()); lv_label_set_text(l_b, "B"); lv_obj_align_to(l_b, slider_b, LV_ALIGN_OUT_LEFT_MID, -20, 0);
 }
 
 void loop() {
