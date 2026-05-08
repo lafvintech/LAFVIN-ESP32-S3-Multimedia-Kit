@@ -8,7 +8,7 @@ void setup() {
     // Initialize the display and touch driver using the class method
     screen.init();
 
-    // 设置背景为白色
+    // Set the background to white
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_white(), 0);
     lv_obj_set_style_bg_opa(lv_scr_act(), LV_OPA_COVER, 0);
     lv_obj_invalidate(lv_scr_act());
