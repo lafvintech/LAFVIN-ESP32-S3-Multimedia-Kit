@@ -22,6 +22,7 @@ constexpr uint32_t kReportIntervalMs = 1000;
 // ----------------------------
 constexpr uint8_t kRateSize = 4;
 constexpr uint8_t kWaveAverageSize = 10;
+constexpr int32_t kWaveformGain = 4;
 
 constexpr int32_t kChartMidpoint = (CHART_HIGH_LIMIT + CHART_LOW_LIMIT) / 2;
 
@@ -81,12 +82,15 @@ volatile int s_beat_average = 0;
 
 long s_ir_values[kWaveAverageSize] = {0};
 byte s_ir_spot = 0;
-volatile long s_last_ir_value = 0;
+  volatile long s_last_ir_value = 0;
 
-uint32_t s_last_report_ms = 0;
+  uint32_t s_last_report_ms = 0;
+  volatile bool s_chart_reset_pending = false;
+  volatile bool s_chart_value_pending = false;
+  volatile lv_coord_t s_pending_chart_value = kChartMidpoint;
 
-// ----------------------------
-// Internal helpers
+  // ----------------------------
+  // Internal helpers
 // ----------------------------
 static void heartrate_exit_event_handler(lv_event_t *e);
 static void create_styles(void);
@@ -97,6 +101,9 @@ static void init_sensor(void);
 static void heartrate_shutdown(void);
 static void heartrate_wake_up(void);
 static void create_heartrate_task(void);
+static void queue_chart_reset(void);
+static void queue_chart_value(lv_coord_t value);
+static void apply_pending_chart_updates(void);
 static long average_ir_window(void);
 static void seed_wave_history(long ir_value);
 static void reset_chart(void);
@@ -278,6 +285,31 @@ void create_heartrate_task(void) {
     &s_heartrate_task_handle);
 }
 
+void queue_chart_reset(void) {
+  s_chart_reset_pending = true;
+}
+
+void queue_chart_value(lv_coord_t value) {
+  s_pending_chart_value = value;
+  s_chart_value_pending = true;
+}
+
+void apply_pending_chart_updates(void) {
+  if (s_chart_reset_pending) {
+    s_chart_reset_pending = false;
+    reset_chart();
+  }
+
+  if (!s_chart_value_pending) {
+    return;
+  }
+
+  s_chart_value_pending = false;
+  if (s_chart_series != nullptr && g_heartrate_ui.chart != nullptr) {
+    lv_chart_set_next_value(g_heartrate_ui.chart, s_chart_series, s_pending_chart_value);
+  }
+}
+
 // Moving average baseline used to center the waveform.
 long average_ir_window(void) {
   long average = 0;
@@ -389,7 +421,7 @@ void heartrate_task_loop(void *pvParameters) {
         s_finger_present = false;
         reset_measurement_state();
         seed_wave_history(0);
-        reset_chart();
+        queue_chart_reset();
         update_status(HeartrateStatus::PlaceFinger);
         Serial.println("Finger removed. Waiting for a stable signal...");
       }
@@ -401,7 +433,7 @@ void heartrate_task_loop(void *pvParameters) {
       s_finger_present = true;
       reset_measurement_state();
       seed_wave_history(ir_value);
-      reset_chart();
+      queue_chart_reset();
       update_status(HeartrateStatus::DetectingPulse);
       Serial.println("Finger detected. Measuring...");
     }
@@ -428,17 +460,16 @@ void heartrate_task_loop(void *pvParameters) {
     s_ir_spot %= kWaveAverageSize;
 
     const long average = average_ir_window();
-    const long show_value = ir_value - average + kChartMidpoint;
+    long show_value = (ir_value - average) * kWaveformGain + kChartMidpoint;
+    if (show_value < CHART_LOW_LIMIT) {
+      show_value = CHART_LOW_LIMIT;
+    } else if (show_value > CHART_HIGH_LIMIT) {
+      show_value = CHART_HIGH_LIMIT;
+    }
 
     if (ir_value > kFingerDetectThreshold &&
-        show_value > CHART_LOW_LIMIT &&
-        show_value < CHART_HIGH_LIMIT &&
-        s_chart_series != nullptr &&
-        g_heartrate_ui.chart != nullptr) {
-      lv_chart_set_next_value(
-        g_heartrate_ui.chart,
-        s_chart_series,
-        static_cast<lv_coord_t>(show_value));
+        s_chart_series != nullptr) {
+      queue_chart_value(static_cast<lv_coord_t>(show_value));
     }
 
     if (s_beat_average == 0) {
@@ -479,12 +510,29 @@ void hartrate_ui_setup(HeartrateUI *ui) {
   init_sensor();
   refresh_ui();
 
-  if (s_sensor_ready) {
-    create_heartrate_task();
-    heartrate_wake_up();
-  }
+  hartrate_ui_start();
 
   Serial.println("Heart rate UI ready.");
+}
+
+// Start or resume sensor sampling after the screen is opened.
+void hartrate_ui_start(void) {
+  if (!s_sensor_ready) {
+    init_sensor();
+  }
+
+  if (!s_sensor_ready) {
+    refresh_ui();
+    return;
+  }
+
+  reset_measurement_state();
+  seed_wave_history(0);
+  queue_chart_reset();
+  update_status(HeartrateStatus::PlaceFinger);
+  heartrate_wake_up();
+  create_heartrate_task();
+  refresh_ui();
 }
 
 // Stop the background sampling task and put the sensor into low-power mode.
@@ -512,6 +560,7 @@ void hartrate_ui_stop(void) {
 
 // UI-side refresh loop; sensor sampling runs in background task.
 void hartrate_ui_loop(void) {
+  apply_pending_chart_updates();
   refresh_ui();
 
   if (millis() - s_last_report_ms >= kReportIntervalMs) {

@@ -262,6 +262,8 @@ void all_in_one_open_screen(AppScreen screen) {
       if (!s_heartrate_ready) {
         hartrate_ui_setup(&g_heartrate_ui);
         s_heartrate_ready = true;
+      } else {
+        hartrate_ui_start();
       }
       break;
 
