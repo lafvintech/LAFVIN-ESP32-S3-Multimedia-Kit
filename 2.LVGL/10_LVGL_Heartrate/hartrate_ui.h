@@ -29,7 +29,13 @@ extern HeartrateUI g_heartrate_ui;
 // Build all widgets and start heart-rate measurement.
 void hartrate_ui_setup(HeartrateUI *ui);
 
+// Start or resume heart-rate measurement when entering the page.
+void hartrate_ui_start(void);
+
 // Refresh labels/debug output on each main loop tick.
 void hartrate_ui_loop(void);
+
+// Stop the background sampling task and shut down the sensor.
+void hartrate_ui_stop(void);
 
 #endif
