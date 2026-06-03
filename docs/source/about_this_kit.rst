@@ -10,7 +10,13 @@ LAFVIN ESP32-S3 Multimedia Kit
 
 The LAFVIN ESP32-S3 Multimedia Kit is a comprehensive development platform built around the ESP32-S3 microcontroller, designed for learning embedded systems, IoT, and graphical user interface (GUI) development.
 
-.. figure:: /Tutorial/img/LA061-1.jpg
+.. figure:: /Tutorial/img/LA075-1.jpg
+   :alt: LAFVIN ESP32-S3 Multimedia Kit
+   :align: center
+
+   *LAFVIN ESP32-S3 Multimedia Kit*
+
+.. figure:: /Tutorial/img/LA075-2.jpg
    :alt: LAFVIN ESP32-S3 Multimedia Kit
    :align: center
 
@@ -29,10 +35,10 @@ Key Features
 .. _key-features:
 
 * **Core Controller**: ESP32-S3, dual-core 240MHz, with Wi-Fi & BLE 5
-* **Display**: 2.8-inch TFT LCD (ILI9341), 320x240 resolution, SPI interface
+* **Display**: 2.8-inch TFT LCD, 320x240 resolution, SPI interface
 * **Touch Panel**: FT6336U capacitive touch controller, I2C interface
-* **Camera**: OV2640 / OV3660 camera module
-* **Audio**: MAX98357A I2S amplifier with speaker
+* **Camera**: OV3660 camera module
+* **Audio**: LAFVIN Audio Decoder Amplifier Module with speaker
 * **Storage**: Micro SD card slot (SDMMC 1-bit mode)
 * **Sensors**:
   - MAX30102 heart rate & pulse oximeter sensor
@@ -72,11 +78,11 @@ Bill of Materials
      - Quantity
    * - ESP32-S3 Main Board
      - 1
-   * - 2.8-inch TFT LCD (ILI9341) with Touch Panel
+   * - 2.8-inch TFT LCD with Touch Panel
      - 1
-   * - OV2640 Camera Module
+   * - OV3660 Camera Module
      - 1
-   * - MAX98357A I2S Audio Amplifier + Speaker
+   * - LAFVIN Audio Decoder Amplifier Module + Speaker
      - 1
    * - MAX30102 Heart Rate Sensor
      - 1

@@ -9,7 +9,7 @@ This section takes your skills to the next level with **LVGL (Light and Versatil
 Each project uses the same ``Display`` class (display + touch + LVGL initialization), letting you focus on learning UI development step by step. The section culminates in the **All-In-One** project that integrates every peripheral into a smartphone-style app launcher.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    2.1_lvgl_hello
    2.2_lvgl_label

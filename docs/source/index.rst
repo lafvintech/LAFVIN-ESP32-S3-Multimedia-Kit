@@ -14,10 +14,16 @@ LAFVIN ESP32-S3 Multimedia Kit
    :maxdepth: 2
    :caption: Arduino Basics
 
-   Arduino/index
+   Arduino/arduino
 
 .. toctree::
    :maxdepth: 2
    :caption: LVGL Advanced
 
-   LVGL/index
+   LVGL/lvgl
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Appendix
+
+   Appendix/appendix
