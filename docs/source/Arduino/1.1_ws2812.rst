@@ -4,35 +4,66 @@
 1.1 WS2812 RGB LED
 ======================
 
-Controlling the WS2812 addressable RGB LED on the ESP32-S3 board.
+Control the onboard WS2812 RGB LED on the ESP32-S3 multimedia board.
 
 Overview
 ========
 
-This project demonstrates the simplest form of output: turning on an LED with different colors. The WS2812 is an addressable RGB LED that can display any color with a single GPIO pin.
+This example shows how to control the onboard WS2812 addressable RGB LED with the ESP32-S3 Arduino core. The sketch cycles through several colors and uses the built-in ``neopixelWrite()`` function, so no external LED library is required.
 
 What You'll Learn
 =================
 
-* Using ``neopixelWrite()`` — the built-in ESP32 function for WS2812 control
+* Using ``neopixelWrite()`` for WS2812 control
 * RGB color model basics
 * Timing with ``delay()``
+* Simple brightness scaling to keep the LED comfortable to view
 
-Pin Connections
-===============
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package: ``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/1.WS2812/1.WS2812.ino``
+
+This example uses the **onboard** WS2812 LED. No external wiring is required.
 
 ======= ========
-WS2812  ESP32-S3
+Signal  ESP32-S3
 ======= ========
 Data    GPIO 48
-VCC     5V
-GND     GND
 ======= ========
+
+.. note::
+   If the LED does not light, confirm that you are using the kit's onboard hardware and that the correct board and serial port are selected in Arduino IDE.
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``1.WS2812.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After the sketch starts, open **Serial Monitor**, set the baud rate to ``115200``, and watch the LED and serial messages at the same time.
+
+After uploading, the onboard LED cycles through these states:
+
+* Red
+* Green
+* Blue
+* Yellow
+* White
+* Off
+
+Each state lasts about 1 second. The Serial Monitor also prints the current color name.
 
 How the Code Works
 ==================
 
-The ESP32 Arduino core (v2.0.14+) includes a built-in ``neopixelWrite(pin, r, g, b)`` function that handles the WS2812 timing protocol — no external library is required.
+The ESP32 Arduino core includes a built-in ``neopixelWrite(pin, r, g, b)`` function that handles the WS2812 timing protocol, so this example does not need Adafruit NeoPixel or other LED libraries.
 
 .. code-block:: cpp
 
@@ -42,9 +73,16 @@ The ESP32 Arduino core (v2.0.14+) includes a built-in ``neopixelWrite(pin, r, g,
    // Set to blue at half brightness
    neopixelWrite(48, 0, 0, 128);
 
-The demo cycles through six colors (Red, Green, Blue, Yellow, Cyan, Magenta) with a 1-second interval, then turns off. Brightness is scaled using a mapped value to avoid excessive power draw.
+In the provided sketch:
 
-Expected Result
-===============
+* ``LED_PIN`` is set to ``48``
+* ``BRIGHTNESS`` is limited to ``25`` to avoid excessive brightness
+* ``ledWrite()`` scales the RGB values before sending them to the LED
+* The loop cycles through red, green, blue, yellow, white, and off, with a 1-second delay between states
 
-After uploading, the WS2812 LED cycles through six different colors, each displayed for approximately 1 second, then turns off.
+Try This Next
+=============
+
+* Change ``BRIGHTNESS`` to make the LED dimmer or brighter
+* Replace the fixed colors with your own RGB values
+* Reduce ``delay(1000)`` to create a faster animation

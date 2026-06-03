@@ -4,49 +4,75 @@
 1.2 ADC Battery Monitor
 =======================
 
-Reading the battery voltage using the ESP32-S3's built-in ADC.
+Read the battery voltage with the ESP32-S3's built-in ADC.
 
 Overview
 ========
 
-This project shows how to read an analog signal — the battery voltage — using the ESP32-S3's Analog-to-Digital Converter (ADC). The battery voltage is routed to GPIO 19 through a 1:4 voltage divider, so the ADC sees at most 1/4 of the actual battery voltage.
+This example shows how to read the battery voltage with the ESP32-S3's built-in ADC. On this board, the battery voltage is routed to ``GPIO 19`` through a ``1:4`` voltage divider, so the ADC pin sees one quarter of the actual battery voltage.
 
 What You'll Learn
 =================
 
-* Using ``analogRead()`` on the ESP32
+* Using ``analogRead()`` on the ESP32-S3
 * Configuring ADC attenuation with ``analogSetAttenuation()``
-* Converting raw ADC values to real voltage
+* Converting a raw ADC reading into an estimated battery voltage
 
-Pin Connections
-===============
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/2.ADC_Battery/2.ADC_Battery.ino``
+
+This example reads the board's built-in battery measurement circuit. No external wiring is required.
 
 ============ ========
-Battery      ESP32-S3
+Signal       ESP32-S3
 ============ ========
 V_BAT (1/4)  GPIO 19
 ============ ========
+
+.. warning::
+   The ADC pin does not receive the full battery voltage directly. The board uses a resistor divider, and the sketch multiplies the measured pin voltage by ``4.0`` to estimate the battery voltage.
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``2.ADC_Battery.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. Open **Serial Monitor**, set the baud rate to ``115200``, and watch the raw ADC value, the divided voltage, and the estimated battery voltage update every 200 ms.
+
+Open the Serial Monitor at ``115200`` baud. You should see readings similar to::
+
+   ADC Val: 2450,   Voltage: 1.97V,   Battery: 7.88V
+   ADC Val: 2448,   Voltage: 1.97V,   Battery: 7.88V
+
+.. note::
+   The actual reading depends on your power source and battery charge level. A fully charged 2-cell Li-ion battery is typically close to ``8.4V``.
 
 How the Code Works
 ==================
 
 .. code-block:: cpp
 
-   analogSetAttenuation(ADC_11db);  // Full range: 0–3.3V
+   analogSetAttenuation(ADC_11db);  // Full range: about 0-3.3V
 
    int raw = analogRead(19);
-   float voltage_at_pin = (raw / 4095.0) * 3.3;  // ESP32-S3 ADC is 12-bit
-   float battery_voltage = voltage_at_pin * 4.0;  // Compensate divider
+   float voltage_at_pin = (raw / 4095.0) * 3.3;    // ESP32-S3 ADC is 12-bit
+   float battery_voltage = voltage_at_pin * 4.0;   // Compensate for the divider
 
-The code reads the ADC every 200ms and prints the raw value, pin voltage, and actual battery voltage to the Serial Monitor.
+In the provided sketch:
 
-Expected Result
-===============
-
-Open the Serial Monitor (115200 baud). You should see readings similar to::
-
-   ADC Raw: 2450  Pin Voltage: 1.97V  Battery Voltage: 7.88V
-   ADC Raw: 2448  Pin Voltage: 1.97V  Battery Voltage: 7.88V
-
-.. note::
-   The actual value depends on your battery's charge level. A fully charged 2-cell Li-ion battery (8.4V) will read approximately 8.2V–8.4V.
+* ``analogSetAttenuation(ADC_11db)`` expands the measurable input range
+* ``analogRead(19)`` gets a 12-bit ADC value from ``0`` to ``4095``
+* The raw value is converted to the voltage seen at ``GPIO 19``
+* The result is multiplied by ``4.0`` to estimate the real battery voltage
+* The sketch prints the readings to the Serial Monitor every 200 ms
