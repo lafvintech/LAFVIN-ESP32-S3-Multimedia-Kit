@@ -1,7 +1,7 @@
 .. _lvgl_music:
 
 ===========================
-2.11 MP3 Music Player
+2.9 MP3 Music Player
 ===========================
 
 A full-featured MP3 music player with playback controls, song list, and volume adjustment.

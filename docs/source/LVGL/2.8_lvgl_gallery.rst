@@ -1,7 +1,7 @@
 .. _lvgl_gallery:
 
 ===========================
-2.10 SD Card Photo Gallery
+2.8 SD Card Photo Gallery
 ===========================
 
 Browsing and displaying BMP images stored on the SD card with a touch-friendly gallery UI.

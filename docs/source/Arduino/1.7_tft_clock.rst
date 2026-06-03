@@ -1,7 +1,7 @@
 .. _arduino_tft_clock:
 
 ======================
-1.5 TFT Digital Clock
+1.7 TFT Digital Clock
 ======================
 
 Displaying a digital clock on the TFT LCD screen using the TFT_eSPI library.

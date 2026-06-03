@@ -1,7 +1,7 @@
 .. _arduino_sdmmc:
 
 ======================
-1.6 SD Card (SDMMC)
+1.4 SD Card (SDMMC)
 ======================
 
 Reading and writing files on a Micro SD card using the SDMMC 1-bit interface.

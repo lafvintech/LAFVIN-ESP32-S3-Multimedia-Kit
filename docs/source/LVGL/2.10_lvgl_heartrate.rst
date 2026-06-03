@@ -1,7 +1,7 @@
 .. _lvgl_heartrate:
 
 =================================
-2.12 Heart Rate Monitor (Chart)
+2.10 Heart Rate Monitor (Chart)
 =================================
 
 Displaying a real-time PPG waveform chart and heart rate using LVGL's chart widget.

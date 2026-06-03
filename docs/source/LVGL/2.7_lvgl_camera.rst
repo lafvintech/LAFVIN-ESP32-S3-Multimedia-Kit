@@ -1,7 +1,7 @@
 .. _lvgl_camera:
 
 ====================================
-2.9 Camera Preview and Photo Capture
+2.7 Camera Preview and Photo Capture
 ====================================
 
 Live camera preview on the TFT screen with gesture controls and BMP photo capture to SD card.

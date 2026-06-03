@@ -1,7 +1,7 @@
 .. _lvgl_rgb:
 
 ==============================
-2.8 RGB LED Control Panel
+2.11 RGB LED Control Panel
 ==============================
 
 An advanced WS2812 LED controller with color presets, brightness slider, and animation modes.

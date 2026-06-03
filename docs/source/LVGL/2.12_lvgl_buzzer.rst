@@ -1,7 +1,7 @@
 .. _lvgl_buzzer:
 
 ============================
-2.7 Piano Keyboard (Buzzer)
+2.12 Piano Keyboard (Buzzer)
 ============================
 
 Building an interactive one-octave piano keyboard using the passive buzzer with PWM tones.

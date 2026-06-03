@@ -1,8 +1,8 @@
 .. _arduino_play_sdmp3:
 
-=============================
-1.8 MP3 Playback from SD Card
-=============================
+======================================
+1.5.1 MP3 Playback from SD Card
+======================================
 
 Playing MP3 audio files stored on a Micro SD card through the I2S audio amplifier and speaker.
 
