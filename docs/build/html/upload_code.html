@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Code to the Board &mdash; LAFVIN ESP32-S3 Multimedia Kit  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Arduino Basics" href="Arduino/index.html" />
+    <link rel="prev" title="CH343 Driver Installation" href="driver_install.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+    <a href="https://www.lafvintech.com/" class="logo-link">
+        <img src="https://lafvintech.com/cdn/shop/files/logo_V2_300x@2x.png?v=1642487152" class="logo" alt="Logo"/>
+    </a>
+    
+    
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about_this_kit.html">About This Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="environment_setup.html">Environment Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="driver_install.html">CH343 Driver Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Upload Code to the Board</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#download-the-source-code">Download the Source Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#open-a-project">Open a Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configure-board-and-port">Configure Board and Port</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#upload-the-code">Upload the Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#monitor-serial-output">Monitor Serial Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arduino Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Arduino/index.html">Arduino Basics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">LVGL Advanced</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="LVGL/index.html">LVGL Advanced</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">LAFVIN ESP32-S3 Multimedia Kit</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Upload Code to the Board</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/upload_code.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="upload-code-to-the-board">
+<span id="upload-code"></span><h1>Upload Code to the Board<a class="headerlink" href="#upload-code-to-the-board" title="Link to this heading"></a></h1>
+<p>This section explains how to open the example sketches and upload them to your ESP32-S3 board.</p>
+<section id="download-the-source-code">
+<h2>Download the Source Code<a class="headerlink" href="#download-the-source-code" title="Link to this heading"></a></h2>
+<p>The complete source code for all tutorials is available on GitHub:</p>
+<ul class="simple">
+<li><p><a class="reference download external" download="" href="https://github.com/lafvintech/LAFVIN-ESP32-S3-Multimedia-Kit/archive/refs/heads/main.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Source</span> <span class="pre">Code</span> <span class="pre">(ZIP)</span></code></a></p></li>
+</ul>
+<p>Alternatively, you can clone the repository using Git:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">lafvintech</span><span class="o">/</span><span class="n">LAFVIN</span><span class="o">-</span><span class="n">ESP32</span><span class="o">-</span><span class="n">S3</span><span class="o">-</span><span class="n">Multimedia</span><span class="o">-</span><span class="n">Kit</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<p>The source code is organized as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>课程代码文件/
+└── LAFVIN-ESP32-S3-Multimedia-Kit-main/
+    ├── 0.CH343Driver/        # USB driver
+    ├── 1.Arduino/            # 9 Arduino fundamental projects
+    │   ├── 1.WS2812/
+    │   ├── 2.ADC_Battery/
+    │   ├── 3.CameraWebServer/
+    │   ├── 4.SDMMC/
+    │   ├── 5.1_Play_SDMMC/
+    │   ├── 5.2_Play_Online/
+    │   ├── 6.HeartRate/
+    │   ├── 7.TFT_Watch/
+    │   └── 8.Touch/
+    ├── 2.LVGL/               # 15 LVGL advanced projects
+    │   ├── 01_LVGL_Test/
+    │   ├── ...
+    │   └── 15_LVGL_All_In_One/
+    └── lib/                  # Required libraries
+</pre></div>
+</div>
+</section>
+<section id="open-a-project">
+<h2>Open a Project<a class="headerlink" href="#open-a-project" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Launch Arduino IDE.</p></li>
+<li><p>Go to <strong>File &gt; Open</strong> (or press <code class="docutils literal notranslate"><span class="pre">Ctrl+O</span></code>).</p></li>
+<li><p>Navigate to the project folder (e.g., <code class="docutils literal notranslate"><span class="pre">1.Arduino/1.WS2812</span></code>) and open the <code class="docutils literal notranslate"><span class="pre">.ino</span></code> file.</p></li>
+</ol>
+</section>
+<section id="configure-board-and-port">
+<h2>Configure Board and Port<a class="headerlink" href="#configure-board-and-port" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Connect your ESP32-S3 board to your computer via USB Type-C.</p></li>
+<li><p>Select the board: <strong>Tools &gt; Board &gt; ESP32 Arduino &gt; ESP32S3 Dev Module</strong>.</p></li>
+<li><p>Select the port: <strong>Tools &gt; Port &gt; USB-SERIAL CH343 (COMx)</strong>.</p></li>
+</ol>
+</section>
+<section id="upload-the-code">
+<h2>Upload the Code<a class="headerlink" href="#upload-the-code" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Click the <strong>Upload</strong> button (right arrow icon) in the toolbar.</p></li>
+<li><p>The IDE will compile the sketch and upload it to the board. You can monitor the progress in the output panel at the bottom.</p></li>
+<li><p>When the upload completes, you should see <strong>“Done uploading.”</strong> and the board will automatically reset and start running the new program.</p></li>
+</ol>
+</section>
+<section id="monitor-serial-output">
+<h2>Monitor Serial Output<a class="headerlink" href="#monitor-serial-output" title="Link to this heading"></a></h2>
+<p>Many examples print debug information to the Serial Monitor. To view it:</p>
+<ol class="arabic simple">
+<li><p>Go to <strong>Tools &gt; Serial Monitor</strong> (or press <code class="docutils literal notranslate"><span class="pre">Ctrl+Shift+M</span></code>).</p></li>
+<li><p>Set the baud rate to <strong>115200</strong> (or the rate specified in the sketch).</p></li>
+<li><p>You should see the program’s output in the Serial Monitor window.</p></li>
+</ol>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<p>Common issues and solutions:</p>
+<ul class="simple">
+<li><p><strong>Board not detected</strong>: Make sure the CH343 driver is installed (see <a class="reference internal" href="driver_install.html#driver-install"><span class="std std-ref">CH343 Driver Installation</span></a>). Try a different USB cable or port.</p></li>
+<li><p><strong>Upload fails</strong>: Hold the <strong>BOOT</strong> button on the board, press and release the <strong>RST</strong> button, then release <strong>BOOT</strong> to enter download mode. Click Upload again.</p></li>
+<li><p><strong>Compilation errors</strong>: Ensure all required libraries are installed (see <a class="reference internal" href="environment_setup.html#environment-setup"><span class="std std-ref">Environment Setup</span></a>). Check that you selected the correct board type.</p></li>
+<li><p><strong>Serial Monitor shows garbage</strong>: Make sure the baud rate in Serial Monitor matches the baud rate set in the sketch (<code class="docutils literal notranslate"><span class="pre">Serial.begin(baudrate)</span></code>).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="driver_install.html" class="btn btn-neutral float-left" title="CH343 Driver Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Arduino/index.html" class="btn btn-neutral float-right" title="Arduino Basics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, LAFVIN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

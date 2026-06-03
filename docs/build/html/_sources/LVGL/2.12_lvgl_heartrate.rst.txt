@@ -1,0 +1,66 @@
+.. _lvgl_heartrate:
+
+=================================
+2.12 Heart Rate Monitor (Chart)
+=================================
+
+Displaying a real-time PPG waveform chart and heart rate using LVGL's chart widget.
+
+Overview
+========
+
+This project creates a medical-style heart rate monitor. The MAX30102 sensor's raw infrared data is plotted as a scrolling line chart, while computed BPM is displayed in a large text label.
+
+What You'll Learn
+=================
+
+* Using the LVGL chart widget (``lv_chart``)
+* Adding data series and scrolling line graphs
+* Real-time data visualization
+* Combining sensor data with dynamic UI updates
+
+How the Code Works
+==================
+
+**Chart Initialization**
+
+A line chart with 90 data points is created to display the PPG (photoplethysmogram) waveform:
+
+.. code-block:: cpp
+
+   lv_obj_t *chart = lv_chart_create(lv_scr_act());
+   lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+   lv_chart_set_point_count(chart, 90);
+   lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 2000);
+
+   lv_chart_series_t *ser = lv_chart_add_series(chart,
+       lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
+
+**Updating the Chart**
+
+In the main loop, raw IR values from the MAX30102 are fed into the chart:
+
+.. code-block:: cpp
+
+   long ir = particleSensor.getIR();
+   lv_chart_set_next_value(chart, ser, ir);
+   lv_chart_refresh(chart);
+
+**BPM Display**
+
+A large label shows the real-time BPM:
+
+.. code-block:: cpp
+
+   lv_label_set_text_fmt(bpm_label, "BPM: %d", bpm);
+
+Expected Result
+===============
+
+- A scrolling red line chart showing the PPG waveform
+- Large BPM reading text (e.g., "BPM: 72")
+- Status indicator showing whether a finger is detected
+- Place your finger on the MAX30102 sensor to see the waveform and BPM
+
+.. note::
+   For best results, keep your finger still and apply gentle, consistent pressure. Avoid bright ambient light on the sensor.

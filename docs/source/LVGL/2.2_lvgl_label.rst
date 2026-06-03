@@ -1,0 +1,59 @@
+.. _lvgl_label:
+
+=============================
+2.2 Label and Button Controls
+=============================
+
+Creating interactive UI elements with LVGL label and button widgets.
+
+Overview
+========
+
+This project introduces interactive widgets. You'll create buttons that respond to touch events and a label that updates dynamically. This is the foundation for all interactive GUIs.
+
+What You'll Learn
+=================
+
+* Creating and styling buttons (``lv_btn``)
+* Assigning event callbacks to handle user clicks
+* Updating label text dynamically at runtime
+* Using LVGL text recoloring (``#RRGGBB text#`` syntax)
+
+How the Code Works
+==================
+
+**Creating the Counter**
+
+A label shows a number, with "+" and "-" buttons to increment and decrement it:
+
+.. code-block:: cpp
+
+   static int counter = 0;
+   lv_obj_t *label = lv_label_create(lv_scr_act());
+
+   static void btn_plus_cb(lv_event_t *e) {
+       counter++;
+       lv_label_set_text_fmt(label, "Counter: %d", counter);
+   }
+
+   lv_obj_t *btn_plus = lv_btn_create(lv_scr_act());
+   lv_obj_add_event_cb(btn_plus, btn_plus_cb, LV_EVENT_CLICKED, NULL);
+
+**Text Recoloring**
+
+LVGL supports inline color formatting in labels. When the "Color" button is pressed, a multi-colored message is displayed:
+
+.. code-block:: cpp
+
+   lv_label_set_text(label, "#FF0000 Hello# #00FF00 World#");
+
+Expected Result
+===============
+
+The screen shows:
+- A counter label with "+" and "-" buttons (increment/decrement the number)
+- A "Show" button that changes the caption to plain text
+- A "Color" button that displays rainbow-colored text
+
+.. note::
+   Text recoloring must be enabled on the label: ``lv_label_set_recolor(label, true)``.

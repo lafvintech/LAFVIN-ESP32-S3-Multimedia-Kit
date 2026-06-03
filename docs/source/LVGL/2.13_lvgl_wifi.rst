@@ -1,0 +1,71 @@
+.. _lvgl_wifi:
+
+============================
+2.13 WiFi Connection Manager
+============================
+
+A graphical WiFi scanner and connection manager with an on-screen keyboard for password entry.
+
+Overview
+========
+
+This project builds a complete WiFi management UI. It scans for nearby networks, displays them in a scrollable list, and provides an on-screen keyboard for entering passwords — no Serial Monitor required.
+
+What You'll Learn
+=================
+
+* Scanning WiFi networks with ``WiFi.scanNetworks()``
+* Populating a scrollable LVGL list with network names
+* Creating a custom on-screen keyboard with buttons
+* Building password input dialogs (``lv_obj_t`` as a modal)
+* Displaying connection status and IP address
+
+How the Code Works
+==================
+
+**Network Scanning**
+
+.. code-block:: cpp
+
+   static void refreshNetworks() {
+       lv_obj_clean(list);
+       int n = WiFi.scanNetworks();
+       for (int i = 0; i < n; i++) {
+           String ssid = WiFi.SSID(i);
+           int rssi = WiFi.RSSI(i);
+           lv_obj_t *btn = lv_list_add_btn(list, NULL, ssid.c_str());
+           // Store SSID in button user data
+       }
+   }
+
+**Password Keyboard**
+
+When a network is selected, a dialog with an on-screen keyboard appears:
+
+.. code-block:: cpp
+
+   static void showPasswordDialog(const char *ssid) {
+       lv_obj_t *kb = lv_keyboard_create(lv_scr_act());
+       lv_obj_t *ta = lv_textarea_create(lv_scr_act());
+       lv_keyboard_set_textarea(kb, ta);
+
+       // Connect button event
+       lv_obj_add_event_cb(connect_btn, connect_cb, LV_EVENT_CLICKED, ssid);
+   }
+
+**Connection**
+
+.. code-block:: cpp
+
+   WiFi.begin(ssid, lv_textarea_get_text(ta));
+   while (WiFi.status() != WL_CONNECTED) { delay(500); }
+   lv_label_set_text_fmt(ipLabel, "IP: %s", WiFi.localIP().toString());
+
+Expected Result
+===============
+
+- Tap "Scan" to list nearby WiFi networks
+- Tap a network name to open the password dialog with keyboard
+- Enter the password and tap "Connect"
+- Status label shows "Connecting..." then "Connected" with the IP address
+- A refresh button re-scans for new networks

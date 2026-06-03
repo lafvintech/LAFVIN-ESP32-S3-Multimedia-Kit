@@ -1,0 +1,189 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CH343 Driver Installation &mdash; LAFVIN ESP32-S3 Multimedia Kit  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Upload Code to the Board" href="upload_code.html" />
+    <link rel="prev" title="Environment Setup" href="environment_setup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+    <a href="https://www.lafvintech.com/" class="logo-link">
+        <img src="https://lafvintech.com/cdn/shop/files/logo_V2_300x@2x.png?v=1642487152" class="logo" alt="Logo"/>
+    </a>
+    
+    
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about_this_kit.html">About This Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="environment_setup.html">Environment Setup</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CH343 Driver Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#download-ch343-driver">Download CH343 Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-by-platform">Installation by Platform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#windows">Windows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macos">macOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linux">Linux</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#verification">Verification</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="upload_code.html">Upload Code to the Board</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arduino Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Arduino/index.html">Arduino Basics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">LVGL Advanced</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="LVGL/index.html">LVGL Advanced</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">LAFVIN ESP32-S3 Multimedia Kit</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CH343 Driver Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/driver_install.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ch343-driver-installation">
+<span id="driver-install"></span><h1>CH343 Driver Installation<a class="headerlink" href="#ch343-driver-installation" title="Link to this heading"></a></h1>
+<p>The ESP32-S3 board uses a <strong>CH343</strong> USB-to-UART bridge chip. Depending on your operating system, you may need to install the driver for your computer to recognize the board.</p>
+<section id="download-ch343-driver">
+<h2>Download CH343 Driver<a class="headerlink" href="#download-ch343-driver" title="Link to this heading"></a></h2>
+<p>The CH343 driver is included in the source code package under the <code class="docutils literal notranslate"><span class="pre">0.CH343Driver</span></code> folder:</p>
+<ul class="simple">
+<li><p><strong>Windows</strong>: <code class="docutils literal notranslate"><span class="pre">CH343SER.EXE</span></code></p></li>
+<li><p><strong>macOS</strong>: <code class="docutils literal notranslate"><span class="pre">CH34XSER_MAC.ZIP</span></code></p></li>
+<li><p><strong>Linux</strong>: <code class="docutils literal notranslate"><span class="pre">ch343ser_linux.zip</span></code></p></li>
+</ul>
+</section>
+<section id="installation-by-platform">
+<h2>Installation by Platform<a class="headerlink" href="#installation-by-platform" title="Link to this heading"></a></h2>
+<section id="windows">
+<h3>Windows<a class="headerlink" href="#windows" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Double-click <code class="docutils literal notranslate"><span class="pre">CH343SER.EXE</span></code> to launch the installer.</p></li>
+<li><p>Click <strong>Install</strong> and wait for the process to complete.</p></li>
+<li><p>Once finished, connect your ESP32-S3 board. Open <strong>Device Manager</strong>, and under <strong>Ports (COM &amp; LPT)</strong>, you should see a new COM port (e.g., <code class="docutils literal notranslate"><span class="pre">USB-SERIAL</span> <span class="pre">CH343</span> <span class="pre">(COMx)</span></code>).</p></li>
+</ol>
+</section>
+<section id="macos">
+<h3>macOS<a class="headerlink" href="#macos" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Unzip <code class="docutils literal notranslate"><span class="pre">CH34XSER_MAC.ZIP</span></code>.</p></li>
+<li><p>Run the installer package (<code class="docutils literal notranslate"><span class="pre">.pkg</span></code> file) and follow the on-screen instructions.</p></li>
+<li><p>After installation, connect the board. Open <strong>Terminal</strong> and run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ls</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">cu</span><span class="o">.*</span>
+</pre></div>
+</div>
+<p>You should see a device like <code class="docutils literal notranslate"><span class="pre">/dev/cu.usbserial-xxxx</span></code>.</p>
+</li>
+</ol>
+</section>
+<section id="linux">
+<h3>Linux<a class="headerlink" href="#linux" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Unzip <code class="docutils literal notranslate"><span class="pre">ch343ser_linux.zip</span></code>.</p></li>
+<li><p>Most modern Linux distributions include the CH343 driver in the kernel. If your board is not recognized, build and install the driver from the source package.</p></li>
+<li><p>Connect the board and run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ls</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">ttyUSB</span><span class="o">*</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">ttyACM</span><span class="o">*</span>
+</pre></div>
+</div>
+<p>The board should appear as <code class="docutils literal notranslate"><span class="pre">/dev/ttyUSB0</span></code> or <code class="docutils literal notranslate"><span class="pre">/dev/ttyACM0</span></code>.</p>
+</li>
+</ol>
+</section>
+</section>
+<section id="verification">
+<h2>Verification<a class="headerlink" href="#verification" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Connect the ESP32-S3 board to your computer via USB Type-C.</p></li>
+<li><p>Open Arduino IDE and go to <strong>Tools &gt; Port</strong>.</p></li>
+<li><p>You should see the board’s serial port listed (<code class="docutils literal notranslate"><span class="pre">COMx</span></code> on Windows, <code class="docutils literal notranslate"><span class="pre">/dev/cu.usbserial-xxxx</span></code> on macOS, <code class="docutils literal notranslate"><span class="pre">/dev/ttyUSB0</span></code> or <code class="docutils literal notranslate"><span class="pre">/dev/ttyACM0</span></code> on Linux).</p></li>
+<li><p>The port name should include “CH343” or “USB Serial”. Select it and you’re ready to upload code.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="environment_setup.html" class="btn btn-neutral float-left" title="Environment Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="upload_code.html" class="btn btn-neutral float-right" title="Upload Code to the Board" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, LAFVIN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

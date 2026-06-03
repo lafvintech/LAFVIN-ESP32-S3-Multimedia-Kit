@@ -1,0 +1,81 @@
+.. _lvgl_music:
+
+===========================
+2.11 MP3 Music Player
+===========================
+
+A full-featured MP3 music player with playback controls, song list, and volume adjustment.
+
+Overview
+========
+
+This project combines the I2S audio capabilities with a polished LVGL user interface to create a music player. It scans the SD card for MP3 files, lets you browse tracks, and provides play/pause, skip, and volume controls.
+
+What You'll Learn
+=================
+
+* Scanning SD card for MP3 files
+* Building a music player UI with playback controls
+* Integrating audio playback with UI state management
+* Volume slider linked to I2S amplifier
+
+How the Code Works
+==================
+
+**Scanning Tracks**
+
+On startup, the player scans ``/music/`` for ``.mp3`` files:
+
+.. code-block:: cpp
+
+   void scanMusic(fs::FS &fs, const char *path) {
+       File dir = fs.open(path);
+       File entry = dir.openNextFile();
+       while (entry) {
+           if (String(entry.name()).endsWith(".mp3")) {
+               // Add to playlist
+           }
+           entry = dir.openNextFile();
+       }
+   }
+
+**Playback Controls**
+
+.. code-block:: cpp
+
+   // Play/Pause button
+   static void play_pause_cb(lv_event_t *e) {
+       if (isPlaying) {
+           audio.pauseResume();
+           isPlaying = false;
+       } else {
+           if (!isStarted) audio.connecttoFS(SD_MMC, filename.c_str());
+           else audio.pauseResume();
+           isPlaying = true;
+       }
+   }
+
+   // Previous / Next / Stop
+   static void prev_cb(lv_event_t *e) { playTrack(currentIndex - 1); }
+   static void next_cb(lv_event_t *e) { playTrack(currentIndex + 1); }
+   static void stop_cb(lv_event_t *e) { audio.stopSong(); }
+
+**Volume Slider**
+
+.. code-block:: cpp
+
+   audio.setVolume(lv_slider_get_value(volSlider));
+
+Expected Result
+===============
+
+#. Before uploading, create a ``/music/`` folder on the SD card and copy MP3 files into it.
+
+#. The music player scans available tracks and displays the current song title.
+
+#. Controls: previous, play/pause, stop, next, volume slider.
+
+#. Tap a control on the touchscreen to operate the player.
+
+.. note::
+   The ``audio.loop()`` function must be called in the main loop to keep playback running. Do not block it with long delays.

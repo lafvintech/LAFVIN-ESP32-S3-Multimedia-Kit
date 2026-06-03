@@ -1,0 +1,77 @@
+.. _arduino_play_online:
+
+==========================
+1.9 Online Audio Streaming
+==========================
+
+Streaming internet radio and online audio directly to the speaker via Wi-Fi.
+
+Overview
+========
+
+This project builds on the previous lesson by replacing the local MP3 file source with an internet audio stream. You'll connect to Wi-Fi and stream an online radio station (or any MP3 stream URL) through the I2S speaker.
+
+What You'll Learn
+=================
+
+* Streaming audio over HTTP
+* Connecting Wi-Fi and audio playback together
+* Accepting stream URLs via Serial input
+
+Pin Connections
+===============
+
+Same as :ref:`arduino_play_sdmp3` for the I2S amplifier. Wi-Fi uses the built-in ESP32-S3 antenna.
+
+How the Code Works
+==================
+
+**Step 1: Connect to Wi-Fi**
+
+.. code-block:: cpp
+
+   #include "WiFi.h"
+
+   WiFi.begin(ssid, password);
+   while (WiFi.status() != WL_CONNECTED) {
+       delay(500);
+       Serial.print(".");
+   }
+
+**Step 2: Stream Online Audio**
+
+.. code-block:: cpp
+
+   #include "Audio.h"
+
+   Audio audio;
+   audio.setPinout(42, 14, 41);  // BCLK, LRC, DOUT
+   audio.setVolume(15);
+
+   // Stream an icecast MP3 radio station
+   audio.connecttohost("http://icecast.radiofrance.fr/fip-midfi.mp3");
+
+**Step 3: Handle Loop**
+
+.. code-block:: cpp
+
+   void loop() {
+       audio.loop();
+       // Handle Serial input for custom URLs
+       if (Serial.available()) {
+           String url = Serial.readString();
+           audio.connecttohost(url.c_str());
+       }
+   }
+
+Expected Result
+===============
+
+#. Edit the Wi-Fi credentials in the sketch before uploading.
+
+#. Upload and open the Serial Monitor (115200 baud). The board connects to Wi-Fi and begins streaming.
+
+#. You can also paste a different MP3 stream URL into the Serial Monitor to switch audio sources.
+
+.. hint::
+   Look for free internet radio stations that provide direct MP3 stream URLs. Many radio stations offer icecast or shoutcast streams suitable for this project.

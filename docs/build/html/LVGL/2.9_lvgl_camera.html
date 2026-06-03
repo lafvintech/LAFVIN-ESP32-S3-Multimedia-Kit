@@ -1,0 +1,212 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.9 Camera Preview and Photo Capture &mdash; LAFVIN ESP32-S3 Multimedia Kit  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=888ff710"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.10 SD Card Photo Gallery" href="2.10_lvgl_gallery.html" />
+    <link rel="prev" title="2.8 RGB LED Control Panel" href="2.8_lvgl_rgb.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+    <a href="https://www.lafvintech.com/" class="logo-link">
+        <img src="https://lafvintech.com/cdn/shop/files/logo_V2_300x@2x.png?v=1642487152" class="logo" alt="Logo"/>
+    </a>
+    
+    
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about_this_kit.html">About This Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../environment_setup.html">Environment Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../driver_install.html">CH343 Driver Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upload_code.html">Upload Code to the Board</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arduino Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Arduino/index.html">Arduino Basics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">LVGL Advanced</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">LVGL Advanced</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="2.1_lvgl_hello.html">2.1 LVGL Hello World</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.2_lvgl_label.html">2.2 Label and Button Controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.3_lvgl_gpio.html">2.3 Switch and Checkbox — RGB LED Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.4_lvgl_slider.html">2.4 Slider — RGB Color Mixer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.5_lvgl_image.html">2.5 Embedded Image Display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.6_lvgl_imgbtn.html">2.6 Image Buttons — Buzzer Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.7_lvgl_buzzer.html">2.7 Piano Keyboard (Buzzer)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.8_lvgl_rgb.html">2.8 RGB LED Control Panel</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">2.9 Camera Preview and Photo Capture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-you-ll-learn">What You’ll Learn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-the-code-works">How the Code Works</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pin-connections">Pin Connections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#expected-result">Expected Result</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="2.10_lvgl_gallery.html">2.10 SD Card Photo Gallery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.11_lvgl_music.html">2.11 MP3 Music Player</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.12_lvgl_heartrate.html">2.12 Heart Rate Monitor (Chart)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.13_lvgl_wifi.html">2.13 WiFi Connection Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.14_lvgl_filemanager.html">2.14 SD Card File Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2.15_lvgl_allinone.html">2.15 All-In-One Application</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">LAFVIN ESP32-S3 Multimedia Kit</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">LVGL Advanced</a></li>
+      <li class="breadcrumb-item active">2.9 Camera Preview and Photo Capture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/LVGL/2.9_lvgl_camera.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="camera-preview-and-photo-capture">
+<span id="lvgl-camera"></span><h1>2.9 Camera Preview and Photo Capture<a class="headerlink" href="#camera-preview-and-photo-capture" title="Link to this heading"></a></h1>
+<p>Live camera preview on the TFT screen with gesture controls and BMP photo capture to SD card.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This project integrates the OV2640 camera with LVGL to create a real-time viewfinder. You can see what the camera sees directly on the screen, capture photos to the SD card, and control camera settings with touch gestures.</p>
+</section>
+<section id="what-you-ll-learn">
+<h2>What You’ll Learn<a class="headerlink" href="#what-you-ll-learn" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Streaming camera frames to an LVGL image object</p></li>
+<li><p>Using FreeRTOS tasks for parallel camera frame grabbing</p></li>
+<li><p>Double-buffering for tear-free display</p></li>
+<li><p>Saving BMP images to SD card</p></li>
+<li><p>Implementing swipe gestures (mirror/flip toggle)</p></li>
+</ul>
+</section>
+<section id="how-the-code-works">
+<h2>How the Code Works<a class="headerlink" href="#how-the-code-works" title="Link to this heading"></a></h2>
+<p><strong>Camera Frame Grabber (FreeRTOS Task)</strong></p>
+<p>A separate FreeRTOS task continuously reads RGB565 frames from the camera and writes them into a double-buffer:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">cameraTask</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">pvParameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">camera_fb_t</span><span class="w"> </span><span class="o">*</span><span class="n">fb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_camera_fb_get</span><span class="p">();</span>
+<span class="w">        </span><span class="n">memcpy</span><span class="p">(</span><span class="n">buf</span><span class="p">[</span><span class="n">activeBuf</span><span class="p">],</span><span class="w"> </span><span class="n">fb</span><span class="o">-&gt;</span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="n">BUF_SIZE</span><span class="p">);</span>
+<span class="w">        </span><span class="n">esp_camera_fb_return</span><span class="p">(</span><span class="n">fb</span><span class="p">);</span>
+<span class="w">        </span><span class="n">frameReady</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">        </span><span class="n">vTaskDelay</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>LVGL Image Display</strong></p>
+<p>The main LVGL task checks for a new frame and updates the image object (240×240 region):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">frameReady</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">lv_img_set_src</span><span class="p">(</span><span class="n">camera_img</span><span class="p">,</span><span class="w"> </span><span class="n">buf</span><span class="p">[</span><span class="n">activeBuf</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">frameReady</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="n">activeBuf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="n">activeBuf</span><span class="p">;</span><span class="w">  </span><span class="c1">// Swap buffers</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Photo Capture</strong></p>
+<p>Tapping the camera icon captures the current frame as a BMP file on the SD card.</p>
+<p><strong>Gesture Controls</strong></p>
+<ul class="simple">
+<li><p>Swipe left/right: toggle horizontal mirror</p></li>
+<li><p>Swipe up/down: toggle vertical flip</p></li>
+</ul>
+</section>
+<section id="pin-connections">
+<h2>Pin Connections<a class="headerlink" href="#pin-connections" title="Link to this heading"></a></h2>
+<p>Same camera pinout as <a class="reference internal" href="../Arduino/1.7_camera_server.html#arduino-camera-server"><span class="std std-ref">1.7 Camera Web Server</span></a>. SD card for saving photos.</p>
+</section>
+<section id="expected-result">
+<h2>Expected Result<a class="headerlink" href="#expected-result" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Live 240×240 camera preview on the left side of the screen</p></li>
+<li><p>Photo capture button on the right — tap to save a BMP to the SD card</p></li>
+<li><p>Swipe gestures mirror/flip the preview</p></li>
+<li><p>Tap the exit button to return</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The camera preview requires significant CPU and memory resources. The double-buffering approach ensures smooth, tear-free video.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="2.8_lvgl_rgb.html" class="btn btn-neutral float-left" title="2.8 RGB LED Control Panel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="2.10_lvgl_gallery.html" class="btn btn-neutral float-right" title="2.10 SD Card Photo Gallery" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, LAFVIN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

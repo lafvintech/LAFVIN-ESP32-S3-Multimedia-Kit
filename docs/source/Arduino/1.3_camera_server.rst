@@ -1,0 +1,94 @@
+.. _arduino_camera_server:
+
+==========================
+1.3 Camera Web Server
+==========================
+
+Streaming live camera video over Wi-Fi using the ESP32-S3's built-in web server.
+
+Overview
+========
+
+This project combines the camera, Wi-Fi, and HTTP server capabilities of the ESP32-S3. You'll create a web server that streams live video from the OV2640 camera, accessible from any browser on your local network.
+
+What You'll Learn
+=================
+
+* Initializing the OV2640/OV3660 camera with ESP32-CAM library
+* Connecting to Wi-Fi as a station
+* Running an HTTP server with streaming video
+* Understanding camera pin configuration
+
+Pin Connections
+===============
+
+The camera uses the ESP32-S3's DCMI (Digital Camera Interface) pins:
+
+========= ========
+Camera    ESP32-S3
+========= ========
+XCLK      GPIO 15
+PCLK      GPIO 13
+VSYNC     GPIO 6
+HREF      GPIO 7
+SDA (I2C) GPIO 4
+SCL (I2C) GPIO 5
+D0–D7     GPIO 8–18
+========= ========
+
+How the Code Works
+==================
+
+**Step 1: Camera Initialization**
+
+.. code-block:: cpp
+
+   #include "esp_camera.h"
+
+   camera_config_t config;
+   config.ledc_channel = LEDC_CHANNEL_0;
+   config.pin_d0 = Y2_GPIO_NUM;
+   // ... all pin assignments from camera_pins.h
+   config.frame_size = FRAMESIZE_UXGA;
+   config.pixel_format = PIXFORMAT_JPEG;
+
+   esp_err_t err = esp_camera_init(&config);
+
+**Step 2: Wi-Fi Connection**
+
+.. code-block:: cpp
+
+   WiFi.begin(ssid, password);
+   while (WiFi.status() != WL_CONNECTED) {
+       delay(500);
+   }
+   Serial.print("Camera Ready! IP: ");
+   Serial.println(WiFi.localIP());
+
+**Step 3: Start Web Server**
+
+.. code-block:: cpp
+
+   server.on("/", HTTP_GET, []() {
+       server.send(200, "text/html", index_html);
+   });
+
+   server.on("/capture", HTTP_GET, []() {
+       camera_fb_t *fb = esp_camera_fb_get();
+       server.send_P(200, "image/jpeg", (const char*)fb->buf, fb->len);
+       esp_camera_fb_return(fb);
+   });
+
+Expected Result
+===============
+
+#. Edit the Wi-Fi credentials (SSID and password) in the sketch before uploading.
+
+#. After uploading, open the Serial Monitor (115200 baud) to see the assigned IP address::
+
+      Camera Ready! IP: 192.168.1.100
+
+#. Open a web browser on any device on the same Wi-Fi network, enter the IP address, and you'll see the live camera stream.
+
+.. note::
+   The camera web server and the browser must be on the same Wi-Fi network. High-resolution streaming may require significant bandwidth.

@@ -1,0 +1,80 @@
+.. _arduino_play_sdmp3:
+
+=============================
+1.8 MP3 Playback from SD Card
+=============================
+
+Playing MP3 audio files stored on a Micro SD card through the I2S audio amplifier and speaker.
+
+Overview
+========
+
+This project demonstrates digital audio playback using the I2S (Inter-IC Sound) protocol. You'll read an MP3 file from the SD card and stream it to the MAX98357A amplifier, which drives the speaker.
+
+What You'll Learn
+=================
+
+* I2S audio output configuration
+* Using the ESP32-audioI2S library
+* Combining SD card reading with audio streaming
+
+Pin Connections
+===============
+
+=========== ========
+MAX98357A   ESP32-S3
+=========== ========
+BCLK        GPIO 42
+LRC         GPIO 14
+DIN (DOUT)  GPIO 41
+GAIN (SD)   GND
+=========== ========
+
+How the Code Works
+==================
+
+**Step 1: Mount the SD Card**
+
+.. code-block:: cpp
+
+   #include "SD_MMC.h"
+
+   SD_MMC.begin("/sdcard", true);
+
+**Step 2: Initialize Audio**
+
+.. code-block:: cpp
+
+   #include "Audio.h"
+
+   Audio audio;
+   audio.setPinout(/*BCLK*/42, /*LRC*/14, /*DOUT*/41);
+   audio.setVolume(15);
+
+**Step 3: Play Audio from SD**
+
+.. code-block:: cpp
+
+   audio.connecttoFS(SD_MMC, "/music/test1.mp3");
+
+**Step 4: Keep Audio Running**
+
+The audio library needs to be called in the loop to decode and stream data:
+
+.. code-block:: cpp
+
+   void loop() {
+       audio.loop();
+   }
+
+Expected Result
+===============
+
+#. Before uploading, copy an MP3 file to the SD card in the ``/music/`` folder with the name ``test1.mp3``.
+
+#. Upload the sketch. The audio file plays automatically through the speaker.
+
+#. Audio metadata (if present) is printed to the Serial Monitor (115200 baud).
+
+.. note::
+   The default volume can be adjusted with ``audio.setVolume()``. Values range from 0 (mute) to 21 (maximum).

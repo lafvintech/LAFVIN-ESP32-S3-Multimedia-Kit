@@ -1,0 +1,50 @@
+.. _arduino_ws2812:
+
+======================
+1.1 WS2812 RGB LED
+======================
+
+Controlling the WS2812 addressable RGB LED on the ESP32-S3 board.
+
+Overview
+========
+
+This project demonstrates the simplest form of output: turning on an LED with different colors. The WS2812 is an addressable RGB LED that can display any color with a single GPIO pin.
+
+What You'll Learn
+=================
+
+* Using ``neopixelWrite()`` — the built-in ESP32 function for WS2812 control
+* RGB color model basics
+* Timing with ``delay()``
+
+Pin Connections
+===============
+
+======= ========
+WS2812  ESP32-S3
+======= ========
+Data    GPIO 48
+VCC     5V
+GND     GND
+======= ========
+
+How the Code Works
+==================
+
+The ESP32 Arduino core (v2.0.14+) includes a built-in ``neopixelWrite(pin, r, g, b)`` function that handles the WS2812 timing protocol — no external library is required.
+
+.. code-block:: cpp
+
+   // Set the LED to red
+   neopixelWrite(48, 255, 0, 0);
+
+   // Set to blue at half brightness
+   neopixelWrite(48, 0, 0, 128);
+
+The demo cycles through six colors (Red, Green, Blue, Yellow, Cyan, Magenta) with a 1-second interval, then turns off. Brightness is scaled using a mapped value to avoid excessive power draw.
+
+Expected Result
+===============
+
+After uploading, the WS2812 LED cycles through six different colors, each displayed for approximately 1 second, then turns off.

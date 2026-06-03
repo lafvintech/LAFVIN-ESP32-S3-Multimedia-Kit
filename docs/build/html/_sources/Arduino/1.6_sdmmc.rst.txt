@@ -1,0 +1,84 @@
+.. _arduino_sdmmc:
+
+======================
+1.6 SD Card (SDMMC)
+======================
+
+Reading and writing files on a Micro SD card using the SDMMC 1-bit interface.
+
+Overview
+========
+
+This project teaches you how to use the SD card slot on the board via the high-speed SDMMC interface. You'll learn file system operations: creating and deleting directories, reading and writing files, and running performance benchmarks.
+
+What You'll Learn
+=================
+
+* Mounting an SD card with SDMMC in 1-bit mode
+* File system operations: list, create, delete, read, write, append, rename
+* Measuring read/write performance
+
+Pin Connections
+===============
+
+======== ========
+SD Slot  ESP32-S3
+======== ========
+CLK      GPIO 39
+CMD      GPIO 38
+D0       GPIO 40
+VCC      3.3V
+GND      GND
+======== ========
+
+How the Code Works
+==================
+
+The sketch initializes the SD card in 1-bit SDMMC mode:
+
+.. code-block:: cpp
+
+   #include "FS.h"
+   #include "SD_MMC.h"
+
+   if (!SD_MMC.begin("/sdcard", true)) {
+       Serial.println("SD Card mount failed");
+       return;
+   }
+
+   uint8_t cardType = SD_MMC.cardType();
+   uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+
+The ``sd_helpers.ino`` file provides helper functions for all file operations:
+
+.. code-block:: cpp
+
+   void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
+   void createDir(fs::FS &fs, const char *path);
+   void writeFile(fs::FS &fs, const char *path, const char *message);
+   void readFile(fs::FS &fs, const char *path);
+   void appendFile(fs::FS &fs, const char *path, const char *message);
+   void renameFile(fs::FS &fs, const char *path1, const char *path2);
+   void deleteFile(fs::FS &fs, const char *path);
+   void testFileIO(fs::FS &fs, const char *path);
+
+The demo runs through a complete test suite: it creates a directory, writes a file, reads it back, appends data, renames and deletes the file, then runs a 1MB read/write benchmark.
+
+Expected Result
+===============
+
+Insert a Micro SD card and open the Serial Monitor (115200 baud). You'll see output similar to::
+
+   SD Card mounted
+   Card Type: SDHC
+   Card Size: 8192MB
+
+   Listing directory: /
+   -- FILE: test.txt (24 bytes)
+   -- DIR:  mydir/
+
+   Write: 1MB in 120ms = 8.33 MB/s
+   Read:  1MB in 45ms  = 22.22 MB/s
+
+.. note::
+   Format the SD card as FAT32 before use. The SD card must be inserted before powering on the board.

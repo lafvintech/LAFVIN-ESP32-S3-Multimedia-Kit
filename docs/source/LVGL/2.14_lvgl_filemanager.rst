@@ -1,0 +1,81 @@
+.. _lvgl_filemanager:
+
+===============================
+2.14 SD Card File Manager
+===============================
+
+A graphical file browser for the SD card with directory navigation, file info, and delete functionality.
+
+Overview
+========
+
+This project creates a complete file manager UI on the touchscreen. You can browse directories, view file details (name, size), and delete files — all from the touch interface without needing a computer.
+
+What You'll Learn
+=================
+
+* Building a file system explorer with LVGL list widget
+* Handling directory navigation (drill-down with breadcrumb path display)
+* Displaying file metadata (name, size)
+* Implementing file operations (delete) through UI dialogs
+* Confirmation dialogs for destructive actions
+
+How the Code Works
+==================
+
+**Directory Navigation**
+
+.. code-block:: cpp
+
+   static void navigateTo(const char *path) {
+       File dir = SD_MMC.open(path);
+       lv_obj_clean(fileList);
+
+       File entry = dir.openNextFile();
+       while (entry) {
+           if (entry.isDirectory()) {
+               lv_obj_t *btn = lv_list_add_btn(fileList, LV_SYMBOL_DIRECTORY,
+                                               entry.name());
+               // Add callback to navigate into this directory
+           } else {
+               lv_obj_t *btn = lv_list_add_btn(fileList, LV_SYMBOL_FILE,
+                                               entry.name());
+               // Add callback to show file info / delete dialog
+           }
+           entry = dir.openNextFile();
+       }
+   }
+
+**Current Path Display**
+
+A label at the top shows the current directory path (e.g., ``/music/albums/``) and updates when navigating.
+
+**File Operations Dialog**
+
+Tapping a file opens a dialog showing:
+- File name
+- File size
+- Delete button (with confirmation)
+
+.. code-block:: cpp
+
+   static void deleteFile(const char *path) {
+       SD_MMC.remove(path);
+       // Refresh current directory listing
+   }
+
+**WiFi Status Badge**
+
+A small WiFi icon in the header indicates whether the board is connected to a network.
+
+Expected Result
+===============
+
+- A scrollable list of files and folders on the SD card
+- Tap a folder to navigate into it
+- Tap a file to view its details (name, size) and option to delete
+- Current path shown at the top
+- Tap the back arrow (or folder name) to go up one level
+
+.. caution::
+   The delete operation removes files permanently from the SD card. There is no recycle bin or undo.
