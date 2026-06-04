@@ -1,64 +1,127 @@
 .. _arduino_heartrate:
 
-======================
+========================
 1.6 Heart Rate Sensor
-======================
+========================
 
-Reading pulse data from the MAX30102 heart rate and pulse oximeter sensor via I2C.
+Read pulse data from the MAX30102 heart rate sensor and calculate BPM.
 
 Overview
 ========
 
-This project demonstrates how to interface with a biomedical sensor. The MAX30102 uses an IR LED and photodetector to measure blood volume changes in your fingertip, which are processed to calculate your heart rate (BPM).
+This example interfaces with the MAX30102 optical heart rate sensor over I2C. It reads infrared (IR) reflection data from your fingertip, detects individual heartbeats, and computes a rolling average of beats per minute (BPM).
 
 What You'll Learn
 =================
 
-* Using third-party sensor libraries (SparkFun MAX3010x)
-* Processing real-time sensor data
-* Simple beat-detection and BPM calculation algorithms
+* Using I2C sensor libraries (SparkFun MAX3010x)
+* Real-time sensor data processing
+* Beat detection and BPM calculation with validation
 
-Pin Connections
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/6.HeartRate/6.HeartRate.ino``
+
+This example uses the **onboard** MAX30102 sensor. No external wiring is required.
+
+======== ========
+Signal   ESP32-S3
+======== ========
+SDA      GPIO 2
+SCL      GPIO 1
+======== ========
+
+Upload and Test
 ===============
 
-========== ========
-MAX30102   ESP32-S3
-========== ========
-SDA        GPIO 2
-SCL        GPIO 1
-VCC        3.3V
-GND        GND
-========== ========
+#. Connect the board with a USB Type-C data cable.
+#. Open ``6.HeartRate.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. Open **Serial Monitor** at ``115200`` baud. You should see::
+
+      Initializing MAX30102...
+      MAX30102 ready.
+      Place your finger gently on the sensor and keep still.
+
+#. Gently place your fingertip on the MAX30102 sensor (the small rectangular component with an LED window). After a few seconds, you should see BPM readings::
+
+      Finger detected. Measuring heart rate...
+      BPM=72.5, Avg BPM=73, IR(raw)=155000
+
+.. note::
+   Keep your finger still and apply gentle, consistent pressure. The sensor needs a few seconds to stabilize. If you see ``Signal too weak`` or ``No finger``, adjust your finger position.
 
 How the Code Works
 ==================
 
-The sketch initializes the MAX30105 sensor with its default settings and continuously reads IR samples:
+**Sensor Initialization**
 
 .. code-block:: cpp
 
+   #include <Wire.h>
+   #include "MAX30105.h"
+   #include "heartRate.h"
+
    MAX30105 particleSensor;
-   particleSensor.begin();
-   particleSensor.setup();
+
+   ParticleSensor.begin(Wire, I2C_SPEED_FAST);
+   ParticleSensor.setup();  // Default config: IR LED only, Red LED off
+
+**Finger Detection**
+
+A debouncing algorithm with 8-sample hysteresis determines whether a finger is present:
+
+.. code-block:: cpp
+
+   const int FINGER_ON_THRESHOLD  = 12000;
+   const int FINGER_OFF_THRESHOLD = 6000;
 
    long irValue = particleSensor.getIR();
 
-A finger-detection algorithm with hysteresis (8-sample window, adjustable thresholds) determines if a finger is placed on the sensor. Beat detection identifies each pulse, and a rolling average (8-beat window) calculates BPM. Unreasonable values (<45 or >180 BPM) are rejected.
+   if (irValue > FINGER_ON_THRESHOLD) {
+       fingerDetected = true;
+   } else if (irValue < FINGER_OFF_THRESHOLD) {
+       fingerDetected = false;
+   }
+
+**BPM Calculation**
 
 .. code-block:: cpp
 
    if (checkForBeat(irValue)) {
-       float bpm = 60000.0 / (millis() - lastBeat);
-       // Add to rolling average
+       long delta = millis() - lastBeat;
+       float bpm = 60000.0 / delta;
+
+       // Validate: must be between 45–180 and within 25 BPM of average
+       if (bpm > 45 && bpm < 180) {
+           rates[rateSpot++] = (byte)bpm;
+           rateSpot %= 8;   // 8-sample rolling window
+       }
+
+       lastBeat = millis();
    }
 
-Expected Result
-===============
+In the provided sketch:
 
-Place your fingertip gently on the MAX30102 sensor. The Serial Monitor (115200 baud) will display::
+* The red LED is disabled — only the IR LED is used for heart rate sensing
+* BPM values outside 45–180 are discarded as noise
+* BPM that deviates more than 25 from the running average is also rejected
+* Readings are reported every 1000ms
 
-   BPM: 72  IR: 85200
-   BPM: 73  IR: 86100
+Try This Next
+=============
 
-.. note::
-   Keep your finger still for accurate readings. It may take a few seconds for the BPM value to stabilize.
+* Experiment with the ``FINGER_ON_THRESHOLD`` and ``FINGER_OFF_THRESHOLD`` values
+* Increase ``RATE_SIZE`` from 8 to 16 for smoother averaging
+* Graph the raw IR values in Arduino IDE's **Serial Plotter** (Tools > Serial Plotter) to visualise your pulse waveform
+
+.. 本章节的心率检测示例参考了 SparkFun_MAX3010x_Sensor_Library 库中的 Example5_HeartRate 示例。结合本开发板的硬件配置，我们对 I2C 引脚、传感器初始化参数以及心率检测流程进行了适配与优化，并增加了手指佩戴检测、数据防抖、异常心率过滤和状态重置等处理，使测量结果更加稳定，也更适合作为学习和演示示例。

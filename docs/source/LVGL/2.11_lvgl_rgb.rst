@@ -1,63 +1,121 @@
 .. _lvgl_rgb:
 
-==============================
+==================================
 2.11 RGB LED Control Panel
-==============================
+==================================
 
-An advanced WS2812 LED controller with color presets, brightness slider, and animation modes.
+An advanced WS2812 LED controller with brightness, colour presets, and animation modes.
 
 Overview
 ========
 
-Building on the earlier RGB switch/checkbox project, this lesson creates a polished, single-purpose LED control panel. It adds features like a live color preview, brightness control, color presets, and animation effects.
+Building on the simpler switch/checkbox LED control from :ref:`lvgl_gpio`, this example creates a dedicated LED control panel. It adds a live colour preview, brightness slider, six colour preset buttons, and four animation modes — all updating the onboard WS2812 LED in real time.
 
 What You'll Learn
 =================
 
-* Combining multiple widget types in one screen
-* Building a color preview panel (custom object)
-* Implementing LED animation patterns
-* Using brightness scaling for WS2812
+* Building a single-purpose control panel with multiple widgets
+* Scaling RGB values proportionally for brightness control
+* Implementing LED animation patterns (solid, blink, breath, rainbow)
+* Using ``millis()``-based non-blocking timing for animations
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/11_LVGL_RGB/11_LVGL_RGB.ino``
+
+This example uses the **onboard** WS2812 LED. No external wiring is required.
+
+======== ========
+Signal   ESP32-S3
+======== ========
+LED DATA GPIO 48
+======== ========
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``11_LVGL_RGB.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. The screen shows an LED control panel:
+
+   * A circular colour preview panel
+   * A brightness slider (0–100%)
+   * Six colour preset buttons: Red, Green, Blue, Yellow, Cyan, Magenta
+   * Four animation mode buttons: **Solid**, **Blink**, **Breath**, **Rainbow**
+
+   Tap a colour preset to see it on the preview panel and the physical LED. Drag the brightness slider to dim or brighten. Tap an animation mode to start an automatic sequence — tap **Solid** to return to manual control.
+
+.. image:: img/lvgl11.jpg
+   :alt: LVGL RGB Panel
+   :align: center
 
 How the Code Works
 ==================
 
-**Color Preview**
-
-A circular object reflects the currently selected color in real time, just like the slider mixer from lesson :ref:`lvgl_slider`.
-
-**Preset Color Buttons**
-
-Six preset color buttons (Red, Green, Blue, Yellow, Cyan, Magenta) set predefined RGB values with a single tap.
-
-**Brightness Slider**
-
-A horizontal slider (0–100%) scales all RGB values proportionally before sending to the LED:
+**Colour Presets**
 
 .. code-block:: cpp
 
-   static void brightness_cb(lv_event_t *e) {
-       int brightness = lv_slider_get_value(slider);
+   static void presetCb(lv_event_t *e) {
+       int idx = (int)lv_event_get_user_data(e);
+       selectedColor = presetColors[idx];
+       mode = MODE_SOLID;
+       applyColor();
+   }
+
+**Brightness Scaling**
+
+.. code-block:: cpp
+
+   static void brightnessCb(lv_event_t *e) {
+       brightness = lv_slider_get_value(brightnessSlider);  // 0–100
+       applyColor();
+   }
+
+   void applyColor() {
        int r = (selectedColor.r * brightness) / 100;
        int g = (selectedColor.g * brightness) / 100;
        int b = (selectedColor.b * brightness) / 100;
-       neopixelWrite(48, r, g, b);
+       neopixelWrite(LED_PIN, r, g, b);
    }
 
-**Animation Modes**
+**Non-Blocking Animations**
 
-Four animation buttons trigger pre-programmed sequences:
-- Color cycle (rainbow loop)
-- Breathing effect (slow fade in/out)
-- Strobe flash
-- Smooth color transition
+Animations use ``millis()`` to track timing without blocking the UI. For example, the breathing effect:
 
-Expected Result
-===============
+.. code-block:: cpp
 
-A clean UI panel with:
-- Live color preview circle
-- Brightness slider (0–100%)
-- 6 color preset buttons
-- 4 animation mode buttons
-- All changes reflect immediately on the WS2812 LED
+   if (mode == MODE_BREATH) {
+       static uint8_t phase = 0;
+       static bool up = true;
+       if (millis() - lastUpdate > 10) {
+           phase += up ? 1 : -1;
+           if (phase >= 255) up = false;
+           if (phase <= 0)   up = true;
+           neopixelWrite(LED_PIN, phase, 0, 0);
+           lastUpdate = millis();
+       }
+   }
+
+In the provided sketch:
+
+* All animation modes are driven by a single loop that checks ``mode`` each iteration
+* The rainbow animation cycles through hue values and converts to RGB
+* ``neopixelWrite()`` updates the LED in every mode
+
+Try This Next
+=============
+
+* Change the blink interval from 500ms to 100ms for a strobe effect
+* Add your own animation mode (e.g., police lights or colour chase)
+* Combine preset colours with the breathing animation for smoother transitions

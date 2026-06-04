@@ -1,63 +1,116 @@
 .. _arduino_tft_clock:
 
-======================
+============================
 1.7 TFT Digital Clock
-======================
+============================
 
-Displaying a digital clock on the TFT LCD screen using the TFT_eSPI library.
+Display a ticking digital clock on the TFT LCD screen with the TFT_eSPI library.
 
 Overview
 ========
 
-This project brings the TFT display to life by drawing a digital clock face. You'll learn how to use the **TFT_eSPI** library to draw shapes, text, and create a custom user interface on a 320x240 SPI display.
+This example brings the onboard TFT LCD to life by rendering a watch-style digital clock. It draws a static bezel background once at startup, then updates the time display every second using a software clock.
 
 What You'll Learn
 =================
 
-* Initializing the TFT display via SPI
-* Drawing rectangles, lines, and text on screen
-* Using custom fonts with TFT_eSPI
-* Simple time-keeping with ``millis()``
+* Initializing the TFT display with ``TFT_eSPI``
+* Drawing rectangles, rounded rectangles, and decorative lines
+* Using custom 7-segment fonts for digital clock displays
+* Simple software timekeeping with ``millis()``
 
-Pin Connections
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+.. important::
+   The **TFT_eSPI** library must be configured for this board's display pins before this example will compile. A matching ``User_Setup.h`` is provided in the library ZIP.
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/7.TFT_Watch/7.TFT_Watch.ino``
+
+This example uses the **onboard** TFT LCD. No external wiring is required.
+
+Upload and Test
 ===============
 
-The TFT display uses the following SPI pins (pre-configured in ``User_Setup.h`` of TFT_eSPI):
+#. Connect the board with a USB Type-C data cable.
+#. Open ``7.TFT_Watch.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, the TFT screen shows a watch face with hours, minutes, and seconds. The time starts from the sketch's compile time and advances every second.
 
-======== ========
-TFT      ESP32-S3
-======== ========
-MOSI     GPIO 11
-SCLK     GPIO 12
-CS       GPIO 10
-DC       GPIO 13
-RST      GPIO 9
-BL       GPIO 3
-======== ========
+The display layout:
+
+* White outer background
+* Dark grey rounded bezel frame
+* Light grey LCD face with decorative lines
+* ``HH:MM`` in large 7-segment font near the centre
+* ``SS`` in smaller size below
+* "LAFVIN" branding at the bottom
 
 How the Code Works
 ==================
 
-The sketch uses TFT_eSPI to render a watch-style interface:
+**Display Initialization**
 
 .. code-block:: cpp
 
+   #include <TFT_eSPI.h>
+
    TFT_eSPI tft = TFT_eSPI();
-   tft.begin();
-   tft.setRotation(1);  // Landscape
+   tft.init();
+   tft.setRotation(0);         // Portrait orientation
+   tft.invertDisplay(true);    // Correct colours for this panel
 
-   // Draw background
+**Drawing the Watch Face**
+
+.. code-block:: cpp
+
    tft.fillScreen(TFT_WHITE);
-   tft.fillRoundRect(10, 10, 300, 220, 15, TFT_DARKGREY);
+   tft.fillRoundRect(5, 40, 230, 220, 15, TFT_DARKGREY);   // Bezel
+   tft.fillRoundRect(15, 50, 210, 200, 10, TFT_LIGHTGREY); // LCD face
 
-   // Display time with 7-segment font
-   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-   tft.drawString("12:30", 60, 60, 7);
+   // Decorative lines and labels
+   tft.drawLine(15, 95, 225, 95, TFT_DARKGREY);
+   tft.setTextColor(TFT_BLACK, TFT_LIGHTGREY);
+   tft.drawString("ALARM CHRONO", 30, 60, 2);
 
-The clock starts from the compile time and advances each second using ``millis()``. The display shows hours and minutes on the top row, and seconds below.
+**Software Clock**
 
-Expected Result
-===============
+.. code-block:: cpp
 
-After uploading, the TFT screen displays a digital clock with a watch-style bezel design. The time advances every second.
+   // Parse compile time
+   int hh = __TIME__[0..1], mm = __TIME__[3..4], ss = __TIME__[6..7];
 
+   void loop() {
+       if (millis() - lastUpdate >= 1000) {
+           ss++;
+           if (ss >= 60) { ss = 0; mm++; }
+           if (mm >= 60) { mm = 0; hh++; }
+           if (hh >= 24) { hh = 0; }
+
+           // Redraw time with 7-segment font
+           tft.setTextDatum(MC_DATUM);
+           tft.drawString(timeStr, 120, 130, 7);
+       }
+   }
+
+In the provided sketch:
+
+* The watch face is drawn **once** in ``setup()`` and not redrawn
+* Only the changing time digits are updated in ``loop()``
+* A 7-segment font (font 7) gives the clock an authentic digital-watch look
+* ``setTextDatum(MC_DATUM)`` centres the text horizontally and vertically at the given coordinate
+
+Try This Next
+=============
+
+* Change ``tft.setRotation(0)`` to ``tft.setRotation(1)`` for a landscape clock
+* Add the date below the time using a smaller font
+* Replace ``__TIME__`` with an NTP-synced clock for real internet time (see :ref:`lvgl_wifi` for a Wi-Fi example)

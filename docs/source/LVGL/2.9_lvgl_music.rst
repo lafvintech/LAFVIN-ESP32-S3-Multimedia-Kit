@@ -1,39 +1,84 @@
 .. _lvgl_music:
 
-===========================
+========================
 2.9 MP3 Music Player
-===========================
+========================
 
-A full-featured MP3 music player with playback controls, song list, and volume adjustment.
+A full-featured music player with playback controls and volume adjustment.
 
 Overview
 ========
 
-This project combines the I2S audio capabilities with a polished LVGL user interface to create a music player. It scans the SD card for MP3 files, lets you browse tracks, and provides play/pause, skip, and volume controls.
+This example creates a complete music player UI. It scans the SD card's ``/music/`` folder for MP3 files, displays the current track title, and provides play/pause, stop, skip, and volume controls — all driven by the touchscreen.
 
 What You'll Learn
 =================
 
-* Scanning SD card for MP3 files
-* Building a music player UI with playback controls
-* Integrating audio playback with UI state management
-* Volume slider linked to I2S amplifier
+* Scanning an SD card for MP3 files
+* Building a music player UI with transport buttons
+* Integrating I2S audio playback with LVGL state management
+* Using a slider widget for volume control
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/09_LVGL_Music/09_LVGL_Music.ino``
+
+.. note::
+   Before uploading, create a ``/music/`` folder on your SD card and copy one or more MP3 files into it.
+
+=========== ========
+Signal      ESP32-S3
+=========== ========
+I2S BCLK    GPIO 42
+I2S LRC     GPIO 14
+I2S DOUT    GPIO 41
+SD CMD      GPIO 38
+SD CLK      GPIO 39
+SD D0       GPIO 40
+=========== ========
+
+Upload and Test
+===============
+
+#. Insert a Micro SD card with MP3 files in the ``/music/`` folder.
+#. Connect the board with a USB Type-C data cable.
+#. Open ``09_LVGL_Music.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. The music player screen shows:
+
+   * The current track title at the top
+   * Transport buttons: **prev**, **play/pause**, **stop**, **next**
+   * A volume slider with numeric readout
+
+   The player automatically begins playing the first MP3 file it finds. Use the touchscreen to control playback.
+
+.. image:: img/lvgl9.jpg
+   :alt: LVGL Music Player
+   :align: center
 
 How the Code Works
 ==================
 
-**Scanning Tracks**
-
-On startup, the player scans ``/music/`` for ``.mp3`` files:
+**Track Scanning**
 
 .. code-block:: cpp
 
-   void scanMusic(fs::FS &fs, const char *path) {
-       File dir = fs.open(path);
+   void scanMusic() {
+       File dir = SD_MMC.open("/music");
        File entry = dir.openNextFile();
+
        while (entry) {
            if (String(entry.name()).endsWith(".mp3")) {
-               // Add to playlist
+               // Add filename to playlist linked list
            }
            entry = dir.openNextFile();
        }
@@ -43,39 +88,42 @@ On startup, the player scans ``/music/`` for ``.mp3`` files:
 
 .. code-block:: cpp
 
-   // Play/Pause button
-   static void play_pause_cb(lv_event_t *e) {
+   static void playPauseCb(lv_event_t *e) {
        if (isPlaying) {
            audio.pauseResume();
            isPlaying = false;
        } else {
-           if (!isStarted) audio.connecttoFS(SD_MMC, filename.c_str());
-           else audio.pauseResume();
+           if (!isStarted) {
+               audio.connecttoFS(SD_MMC, currentTrack);
+               isStarted = true;
+           } else {
+               audio.pauseResume();
+           }
            isPlaying = true;
        }
    }
-
-   // Previous / Next / Stop
-   static void prev_cb(lv_event_t *e) { playTrack(currentIndex - 1); }
-   static void next_cb(lv_event_t *e) { playTrack(currentIndex + 1); }
-   static void stop_cb(lv_event_t *e) { audio.stopSong(); }
 
 **Volume Slider**
 
 .. code-block:: cpp
 
-   audio.setVolume(lv_slider_get_value(volSlider));
+   lv_slider_set_range(volSlider, 0, 21);
+   lv_slider_set_value(volSlider, 10, LV_ANIM_OFF);
 
-Expected Result
-===============
+   static void volumeCb(lv_event_t *e) {
+       int vol = lv_slider_get_value(volSlider);
+       audio.setVolume(vol);
+   }
 
-#. Before uploading, create a ``/music/`` folder on the SD card and copy MP3 files into it.
+In the provided sketch:
 
-#. The music player scans available tracks and displays the current song title.
+* ``audio.loop()`` is called continuously in the main loop to keep the audio pipeline running
+* The transport buttons toggle the ``Audio`` library's play/pause/stop/next states
+* Volume ranges from 0 (mute) to 21 (maximum)
 
-#. Controls: previous, play/pause, stop, next, volume slider.
+Try This Next
+=============
 
-#. Tap a control on the touchscreen to operate the player.
-
-.. note::
-   The ``audio.loop()`` function must be called in the main loop to keep playback running. Do not block it with long delays.
+* Add more MP3 files to the ``/music/`` folder and see the track list grow
+* Display the track duration or current playback position
+* Add a shuffle or repeat mode button

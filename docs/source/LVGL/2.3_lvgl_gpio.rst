@@ -1,23 +1,62 @@
 .. _lvgl_gpio:
 
-=========================================
+==========================================
 2.3 Switch and Checkbox — RGB LED Control
-=========================================
+==========================================
 
-Controlling physical hardware (WS2812 LED) with LVGL switch and checkbox widgets.
+Control the onboard WS2812 LED with LVGL switch and checkbox widgets.
 
 Overview
 ========
 
-This is the first project where GUI widgets interact directly with hardware. You'll use a **Switch** to toggle an LED on/off and **Checkboxes** (radio-button style) to select colors.
+This is the first LVGL project where the touchscreen directly controls physical hardware. A **Switch** toggles the LED on and off, and six **Checkboxes** (radio-button style) select the LED's colour.
 
 What You'll Learn
 =================
 
-* Creating and styling switches (``lv_switch``) and checkboxes (``lv_checkbox``)
-* Single-selection radio-button behavior
-* Linking GUI events to hardware actions (``neopixelWrite()``)
-* Dynamic label updates showing device state
+* Creating switches (``lv_switch``) and checkboxes (``lv_checkbox``)
+* Implementing single-selection radio-button behaviour
+* Linking LVGL events to hardware control (``neopixelWrite()``)
+* Styling checkbox indicators with custom colours
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/03_LVGL_GPIO/03_LVGL_GPIO.ino``
+
+This example uses the **onboard** WS2812 LED. No external wiring is required.
+
+======== ========
+Signal   ESP32-S3
+======== ========
+LED DATA GPIO 48
+======== ========
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``03_LVGL_GPIO.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. On the screen you see:
+
+   * A master **Switch** — toggle it to turn the LED on or off
+   * Six colour checkboxes: Red, Green, Blue, Yellow, Cyan, Magenta
+   * A status label showing the current LED state
+
+   Flip the master switch on, then tap any colour checkbox. The onboard WS2812 LED changes colour immediately. Only one colour can be selected at a time — tapping a new one deselects the previous.
+
+.. image:: img/lvgl3.png
+   :alt: LVGL GPIO Control
+   :align: center
 
 How the Code Works
 ==================
@@ -26,34 +65,48 @@ How the Code Works
 
 .. code-block:: cpp
 
+   lv_obj_t *master_switch = lv_switch_create(lv_scr_act());
+
    static void switch_cb(lv_event_t *e) {
-       bool on = lv_obj_has_state(btn, LV_STATE_CHECKED);
-       if (on) applyColor(); else neopixelWrite(48, 0, 0, 0);
+       if (lv_obj_has_state(master_switch, LV_STATE_CHECKED)) {
+           applyColor();                // Re-apply current colour
+       } else {
+           neopixelWrite(48, 0, 0, 0); // Turn LED off
+       }
    }
 
-**Color Selection (Radio-Style)**
-
-Multiple checkboxes are linked so only one can be active at a time. Each maps to an RGB color:
+**Radio-Style Checkboxes**
 
 .. code-block:: cpp
 
-   // Red checkbox
    lv_obj_t *cb_red = lv_checkbox_create(lv_scr_act());
    lv_checkbox_set_text(cb_red, "Red");
-   // ... style with red indicator ...
 
-   static void cb_cb(lv_event_t *e) {
-       selectedColor = RED;
-       if (masterSwitchOn) applyColor();
+   static void checkbox_cb(lv_event_t *e) {
+       // Clear all other checkboxes
+       // Set selectedColor to the chosen RGB value
+       if (masterSwitchIsOn) applyColor();
    }
 
-**6 Colors**: Red, Green, Blue, Yellow, Cyan, Magenta
+**Applying the Colour**
 
-Expected Result
-===============
+.. code-block:: cpp
 
-- The master switch toggles the WS2812 LED on/off
-- Selecting a color checkbox changes the LED color immediately
-- The status label shows the current LED state (ON/OFF and color)
+   // Brightness clamped to 25 to avoid dazzling
+   neopixelWrite(LED_PIN,
+       selectedColor.r * BRIGHTNESS / 255,
+       selectedColor.g * BRIGHTNESS / 255,
+       selectedColor.b * BRIGHTNESS / 255);
 
-The WS2812 LED on GPIO 48 responds in real-time to the touchscreen controls.
+In the provided sketch:
+
+* The six checkboxes are arranged in two columns of three
+* Each checkbox indicator is styled to match its colour
+* ``lv_obj_has_state()`` checks whether the switch is toggled on
+
+Try This Next
+=============
+
+* Increase ``BRIGHTNESS`` from 25 if you want a brighter LED
+* Add more pre-set colours (orange, pink, white, etc.)
+* Read the switch state in ``loop()`` and blink the LED independently of the screen

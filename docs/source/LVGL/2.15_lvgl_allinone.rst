@@ -1,90 +1,139 @@
 .. _lvgl_allinone:
 
-=============================
+===============================
 2.15 All-In-One Application
-=============================
+===============================
 
-The capstone project: a smartphone-style app launcher that integrates every peripheral and UI module into one unified application.
+The capstone project: a smartphone-style app launcher that integrates every peripheral and UI module.
 
 Overview
 ========
 
-This is the ultimate project tying everything together. It creates a home screen with scrollable pages of app icons, each launching one of the previous projects (Camera, Gallery, Music, Heartrate, RGB, Buzzer, WiFi, File Manager). It includes a status bar with WiFi indicator and real-time clock synced via NTP.
+This is the ultimate project that ties together everything you have built. It creates a home screen with two pages of app icons, each launching one of the previous projects — Camera, Gallery, Music, HeartRate, RGB, Buzzer, WiFi, and File Manager. It includes a status bar with WiFi indicator and real-time clock.
 
 What You'll Learn
 =================
 
-* Building an app-launcher architecture with LVGL Tileview
-* Lazy-loading: initializing modules only when needed
-* Screen transition management (switching between apps)
-* Properly stopping background tasks (camera, audio, sensor) when switching away
-* NTP time synchronization for the clock
-* Structuring a multi-module embedded application
+* Building an app launcher with LVGL tileview and paginated screens
+* Lazy-loading: initialising modules only when first launched
+* Managing screen transitions and properly stopping background tasks
+* NTP time synchronisation for a live clock
+* Structuring a large, multi-module embedded application
 
-Architecture
-============
+Setup Notes
+===========
 
-**Home Screen (Tileview)**
+Make sure you have already completed:
 
-Two scrollable pages of app icons, each icon launching a different module:
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/15_LVGL_All_In_One/15_LVGL_All_In_One.ino``
+
+.. note::
+   This sketch uses all board peripherals. You need a Micro SD card with the proper folder structure for Gallery, Music, and Camera.
+
+Upload and Test
+===============
+#. Insert a FAT32-formatted Micro SD card (with ``/music/`` and ``/picture/`` folders if you want to use those apps).
+#. Connect the board with a USB Type-C data cable.
+#. Open ``15_LVGL_All_In_One.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, the home screen shows:
+
+   * **Status bar** at the top with Wi-Fi icon and current time
+   * Two tile pages (swipe left/right to switch):
+
+     - **Page 1**: Camera, Gallery, Music, HeartRate
+     - **Page 2**: RGB, Buzzer, WiFi, File Manager
+
+   Tap any app icon to launch the full application — identical to the standalone version you built in the earlier lessons. Tap the back/home button to return to the launcher.
+
+.. image:: img/lvgl15.jpg
+   :alt: LVGL All-In-One
+   :align: center
+
+How the Code Works
+==================
+
+**App Launcher with Tileview**
 
 .. code-block:: cpp
 
    lv_obj_t *tv = lv_tileview_create(lv_scr_act());
 
-   // Page 1: Camera, Gallery, Music, Heartrate
-   lv_obj_t *tile1 = lv_tileview_add_tile(tv, 0, 0, LV_DIR_LEFT);
-   // Add icon buttons...
+   lv_obj_t *page1 = lv_tileview_add_tile(tv, 0, 0, LV_DIR_LEFT);
+   lv_obj_t *page2 = lv_tileview_add_tile(tv, 0, 1, LV_DIR_RIGHT);
 
-   // Page 2: RGB, Buzzer, WiFi, File Manager
-   lv_obj_t *tile2 = lv_tileview_add_tile(tv, 0, 1, LV_DIR_RIGHT);
-   // Add icon buttons...
+   // Add icon buttons to each page
+   addAppIcon(page1, &camera_icon, "Camera", APP_CAMERA);
+   addAppIcon(page1, &gallery_icon, "Gallery", APP_GALLERY);
+   // ...
 
-**Lazy Initialization**
-
-Each module is initialized only when the user taps its icon for the first time, saving memory:
+**Lazy Loading**
 
 .. code-block:: cpp
 
-   static void launchCamera() {
-       if (!cameraInitialized) {
-           initCameraModule();
-           cameraInitialized = true;
+   static void launchApp(int appId) {
+       switch (appId) {
+           case APP_CAMERA:
+               if (!cameraReady) {
+                   camera_init();     // Init camera only now
+                   cameraReady = true;
+               }
+               camera_task_start();   // Start FreeRTOS task
+               break;
+           case APP_MUSIC:
+               if (!musicReady) {
+                   audio.setPinout(42, 14, 41);
+                   musicReady = true;
+               }
+               break;
        }
-       switchToScreen(cameraScreen);
+       lv_scr_load(appScreen);
    }
 
-**Background Task Management**
+**Task Management**
 
-When switching between apps, background tasks are properly stopped:
+When switching between apps, background tasks from the previous app are properly stopped:
 
 .. code-block:: cpp
 
-   static void switchToScreen(lv_obj_t *newScreen) {
-       // Stop current app's background tasks
-       if (currentApp == CAMERA) cameraTaskStop();
-       if (currentApp == AUDIO)  audio.stopSong();
-       if (currentApp == HEARTRATE) sensorTaskStop();
-
-       // Load new screen
-       lv_scr_load(newScreen);
-       currentApp = newApp;
+   static void exitApp() {
+       switch (currentApp) {
+           case APP_CAMERA:  camera_task_stop();  break;
+           case APP_MUSIC:   audio.stopSong();    break;
+           case APP_HEARTRATE: sensorSleep();     break;
+       }
+       lv_scr_load(homeScreen);
+       currentApp = APP_HOME;
    }
 
-**Status Bar**
+**NTP Time Synchronisation**
 
-- Left: WiFi connection status indicator
-- Right: Real-time clock (NTP-synced, CST-8 timezone: ``8 * 3600`` offset)
+.. code-block:: cpp
 
-Expected Result
-===============
+   configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
 
-#. The home screen shows two pages of app icons (swipe left/right to switch pages).
+   struct tm timeInfo;
+   getLocalTime(&timeInfo);
+   lv_label_set_text_fmt(clockLabel,
+       "%02d:%02d", timeInfo.tm_hour, timeInfo.tm_min);
 
-#. The status bar displays WiFi status and current time (synced via NTP once connected to Wi-Fi).
+In the provided sketch:
 
-#. Tap any app icon to launch it. The app runs with its full functionality (camera, music, etc.).
+* Memory is conserved by initialising each module only when first used
+* The tileview handles swipe gestures between pages automatically
+* The status bar clock updates once per minute after receiving an NTP sync
+* Eight independent applications coexist in a single sketch
 
-#. Tap the back/home button in each app to return to the home screen.
+Try This Next
+=============
 
-This single sketch combines everything you've learned — display, touch, camera, SD card, audio, heart rate sensor, LEDs, buzzer, Wi-Fi, and file management — into one cohesive application.
+* Add a third page with utility apps (settings, about, help)
+* Customise app icons with your own images
+* Add a battery indicator to the status bar using ADC readings from :ref:`arduino_adc`
+* Create your own custom app and add it to the launcher

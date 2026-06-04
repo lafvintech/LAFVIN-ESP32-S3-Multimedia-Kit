@@ -1,36 +1,74 @@
 .. _arduino_play_online:
 
-===================================
+==============================
 1.5.2 Online Audio Streaming
-===================================
+==============================
 
-Streaming internet radio and online audio directly to the speaker via Wi-Fi.
+Stream internet radio and online audio directly to the speaker via Wi-Fi.
 
 Overview
 ========
 
-This project builds on the previous lesson by replacing the local MP3 file source with an internet audio stream. You'll connect to Wi-Fi and stream an online radio station (or any MP3 stream URL) through the I2S speaker.
+This example builds on the audio playback from the previous lesson — but instead of reading MP3 files from the SD card, it streams audio directly from the internet. You'll connect to Wi-Fi and play a live internet radio station through the I2S speaker.
 
 What You'll Learn
 =================
 
-* Streaming audio over HTTP
-* Connecting Wi-Fi and audio playback together
-* Accepting stream URLs via Serial input
+* Streaming audio over HTTP with the ``Audio`` library
+* Combining Wi-Fi connectivity with I2S audio output
+* Switching audio sources at runtime via Serial input
 
-Pin Connections
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/5.2_Play_Online/5.2_Play_Online.ino``
+
+.. important::
+   Edit the ``ssid`` and ``password`` variables in the sketch to match your Wi-Fi network before uploading.
+
+=========== ========
+Signal      ESP32-S3
+=========== ========
+I2S BCLK    GPIO 42
+I2S LRC     GPIO 14
+I2S DOUT    GPIO 41
+=========== ========
+
+Upload and Test
 ===============
 
-Same as :ref:`arduino_play_sdmp3` for the I2S amplifier. Wi-Fi uses the built-in ESP32-S3 antenna.
+#. Set your Wi-Fi SSID and password in the sketch.
+#. Connect the board with a USB Type-C data cable.
+#. Open ``5.2_Play_Online.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. Open **Serial Monitor** at ``115200`` baud. The board connects to Wi-Fi and begins streaming internet radio::
+
+      Connecting to WiFi
+      ........
+      WiFi connected
+      IP address: 192.168.1.100
+
+   You should hear audio through the onboard speaker.
+
+#. Paste a different MP3 stream URL into the Serial Monitor and press Enter to switch to a different station.
 
 How the Code Works
 ==================
 
-**Step 1: Connect to Wi-Fi**
+**Wi-Fi Connection**
 
 .. code-block:: cpp
 
-   #include "WiFi.h"
+   #include <WiFi.h>
+   #include "Audio.h"
 
    WiFi.begin(ssid, password);
    while (WiFi.status() != WL_CONNECTED) {
@@ -38,40 +76,41 @@ How the Code Works
        Serial.print(".");
    }
 
-**Step 2: Stream Online Audio**
+**Stream Online Audio**
 
 .. code-block:: cpp
 
-   #include "Audio.h"
-
    Audio audio;
    audio.setPinout(42, 14, 41);  // BCLK, LRC, DOUT
-   audio.setVolume(15);
+   audio.setVolume(10);
 
-   // Stream an icecast MP3 radio station
-   audio.connecttohost("http://icecast.radiofrance.fr/fip-midfi.mp3");
+   // Default internet radio stream
+   audio.connecttohost("http://icecast.omroep.nl/radio4-bb-mp3");
 
-**Step 3: Handle Loop**
+**Runtime URL Switching**
+
+The sketch reads from ``Serial`` in the main loop. If you send any text, it is treated as a new stream URL:
 
 .. code-block:: cpp
 
    void loop() {
        audio.loop();
-       // Handle Serial input for custom URLs
+
        if (Serial.available()) {
            String url = Serial.readString();
            audio.connecttohost(url.c_str());
        }
    }
 
-Expected Result
-===============
+In the provided sketch:
 
-#. Edit the Wi-Fi credentials in the sketch before uploading.
+* The default stream points to a public icecast MP3 radio station
+* Volume is set to 10 to be conservative
+* Audio metadata (stream title, etc.) is printed to the Serial Monitor when available
 
-#. Upload and open the Serial Monitor (115200 baud). The board connects to Wi-Fi and begins streaming.
+Try This Next
+=============
 
-#. You can also paste a different MP3 stream URL into the Serial Monitor to switch audio sources.
-
-.. hint::
-   Look for free internet radio stations that provide direct MP3 stream URLs. Many radio stations offer icecast or shoutcast streams suitable for this project.
+* Find other free internet radio station URLs and use the Serial Monitor to switch between them
+* Set up a local audio stream with VLC or another media server on your computer
+* Combine with :ref:`arduino_play_sdmp3` to build a player that switches between local and online sources

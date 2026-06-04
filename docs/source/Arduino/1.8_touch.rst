@@ -1,59 +1,117 @@
 .. _arduino_touch:
 
-======================
+==================
 1.8 Touch Panel
-======================
+==================
 
-Reading touch coordinates from the FT6336U capacitive touch controller via I2C.
+Read touch coordinates from the FT6336U capacitive touch controller over I2C.
 
 Overview
 ========
 
-This project introduces I2C communication by reading data from the FT6336U capacitive touch panel controller. You'll learn how to query register information from an I2C device and read real-time multi-touch coordinates.
+This example shows how to read multi-touch data from the FT6336U capacitive touch panel controller. On startup, it dumps all configuration registers for debugging, then continuously scans for up to 2 simultaneous touch points.
 
 What You'll Learn
 =================
 
-* I2C communication basics (SDA/SCL)
-* Reading device registers over I2C
-* Detecting touch gestures and multi-touch points
+* Initializing the FT6336U touch controller over I2C
+* Reading device configuration registers
+* Detecting touch points and reading X/Y coordinates
+* Understanding I2C device addressing
 
-Pin Connections
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/8.Touch/8.Touch.ino``
+
+This example uses the **onboard** touch panel. No external wiring is required.
+
+======== ========
+Signal   ESP32-S3
+======== ========
+SDA      GPIO 2
+SCL      GPIO 1
+======== ========
+
+Upload and Test
 ===============
 
-======= ========
-FT6336U ESP32-S3
-======= ========
-SDA     GPIO 2
-SCL     GPIO 1
-======= ========
+#. Connect the board with a USB Type-C data cable.
+#. Open ``8.Touch.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. Open **Serial Monitor** at ``115200`` baud. On startup, the sketch prints the FT6336U's configuration registers::
+
+      FT6336U Device Mode: 0x00
+      FT6336U Threshold: 0x30
+      ...
+      Chip ID: 0x06
+      Firmware ID: 0x05
+
+#. Touch the screen. Coordinates appear in the Serial Monitor every 100ms::
+
+      FT6336U TD Count 1 / TD1 (1,  150,  200) / TD2 (0,    0,    0)
+
+   The format is: touch status (1 = pressed), X coordinate, Y coordinate. The second touch point shows ``0`` when only one finger is touching.
 
 How the Code Works
 ==================
 
-The sketch uses the **FT6336U** library to communicate with the touch controller. On startup, it dumps the chip's configuration registers:
+**Sensor Initialization**
 
 .. code-block:: cpp
+
+   #include "FT6336U.h"
 
    FT6336U ft6336u(FT6336U_ADDR, &Wire);
-   ft6336u.begin();
 
-   Serial.print("Device Mode: ");
-   Serial.println(ft6336u.readDeviceMode());
+   ft6336u.begin();  // I2C init at default address
 
-The main loop scans for touch points every 100ms, reading up to 2 simultaneous touch coordinates:
+**Reading Registers**
+
+The FT6336U's internal configuration is read through a series of register reads:
 
 .. code-block:: cpp
 
-   TouchPoint touch = ft6336u.scan();
-   if (touch.status == TOUCH_DETECTED) {
-       Serial.printf("Touch %d: (%d, %d)\n", touch.id, touch.x, touch.y);
-   }
+   Serial.print("Device Mode: 0x");
+   Serial.println(ft6336u.readDeviceMode(), HEX);
 
-Expected Result
-===============
+   Serial.print("Firmware ID: 0x");
+   Serial.println(ft6336u.readFirmwareID(), HEX);
 
-Open the Serial Monitor (115200 baud). On startup, you'll see all the FT6336U register information. When you touch the screen, the coordinates of touch points are printed::
+**Touch Scanning**
 
-   Touch 1: (120, 180)
-   Touch 1: (122, 178)
+.. code-block:: cpp
+
+   TouchPoint touch = ft6336u.scan();  // Returns up to 2 touch points
+
+   Serial.printf("TD Count %d / TD1 (%d, %4d, %4d) / TD2 (%d, %4d, %4d)\n",
+       touch.count,
+       touch.points[0].status,   // 1 = pressed, 0 = released
+       touch.points[0].x,
+       touch.points[0].y,
+       touch.points[1].status,
+       touch.points[1].x,
+       touch.points[1].y);
+
+In the provided sketch:
+
+* The register dump includes 16 configuration values: device mode, thresholds, filter settings, timeouts, read rates, firmware/version info, and power state
+* Touch scanning runs at 100ms intervals — suitable for most UI applications
+* Coordinates are in the display's native resolution (320 × 240)
+
+Try This Next
+=============
+
+* Reduce the scan interval from 100ms to 20ms for more responsive touch
+* Look at the ``threshold`` register — lowering it makes the panel more sensitive
+* Use the touch coordinates as input for your own projects (e.g., draw on screen, move a cursor)
+
+.. 本章节的触摸示例参考了 Arduino-FT6336U 库中的 ScanMultiTouch 示例。结合本开发板的硬件配置，我们对 I2C 引脚及触摸芯片相关引脚设置进行了适配，并保留了库中的多点触摸扫描功能。同时，对原示例中较为冗长的串口打印内容进行了精简，使输出结果更加直观，也更适合作为学习和演示示例。

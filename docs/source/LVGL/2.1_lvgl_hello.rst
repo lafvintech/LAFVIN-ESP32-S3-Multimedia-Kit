@@ -4,24 +4,57 @@
 2.1 LVGL Hello World
 ======================
 
-Verifying that LVGL, the display, and the touch panel are all working correctly.
+Verify that LVGL, the display, and the touch panel are all working with a minimal test screen.
 
 Overview
 ========
 
-This is the simplest possible LVGL application: a single text label centered on screen. It confirms that:
-- The TFT display is properly initialized and rendering
-- LVGL's task handler is running
-- The touch panel is detected
+This is the simplest possible LVGL application — a single centred text label. It confirms that the TFT display is rendering, LVGL's task handler is running, and the touch panel is detected.
 
-The ``Display`` Class
-=====================
+What You'll Learn
+=================
 
-All LVGL projects share a common ``display.h`` / ``display.cpp`` pair that initializes:
+* How the shared ``Display`` class initialises the hardware (display + touch + LVGL)
+* The minimum ``setup()`` and ``loop()`` structure for every LVGL project
+* Creating and centring a label widget
 
-* **TFT_eSPI** — SPI display driver for ILI9341 (320x240 landscape)
-* **FT6336U** — I2C touch controller (SDA=2, SCL=1)
-* **LVGL** — Graphics library core with display and touch drivers registered
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/01_LVGL_Test/01_LVGL_Test.ino``
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``01_LVGL_Test.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, the TFT screen shows **"TEST"** followed by **"Hello World!"** and **"Arduino LVGL"**, all centred on a white background.
+
+If the screen stays blank, check that the **TFT_eSPI** library has been configured for this board's display pins (see :ref:`install_local_library`).
+
+.. image:: img/lvg1.png
+   :alt: LVGL Hello World
+   :align: center
+
+How the Code Works
+==================
+
+**The Display Class**
+
+Every LVGL project in this kit shares the same ``Display`` class (found in ``display.h`` and ``display.cpp``). It handles:
+
+* **FT6336U** touch controller initialisation (I2C: SDA=2, SCL=1)
+* **TFT_eSPI** display driver initialisation (SPI, landscape 320×240)
+* **LVGL** core initialisation (``lv_init()``, display driver, input device driver)
 
 .. code-block:: cpp
 
@@ -31,16 +64,16 @@ All LVGL projects share a common ``display.h`` / ``display.cpp`` pair that initi
 
    void setup() {
        Serial.begin(115200);
-       display.init();  // Initialize display, touch, LVGL
-       // ... create UI widgets ...
+       display.init();  // Hardware + LVGL ready
+
+       // Add your widgets here...
    }
 
    void loop() {
-       display.routine();  // Call lv_timer_handler() at ~200Hz
+       display.routine();  // Calls lv_timer_handler() at ~200Hz
    }
 
-How the Code Works
-==================
+**The Label Widget**
 
 .. code-block:: cpp
 
@@ -51,22 +84,14 @@ How the Code Works
        "Arduino LVGL");
    lv_obj_center(label);
 
-A label widget is created on the active screen (``lv_scr_act()``), centered, with multi-line text using the built-in ``montserrat_20`` font. The background defaults to white.
+In the provided sketch:
 
-What You'll Learn
-=================
+* ``lv_scr_act()`` returns the currently active screen — the starting point for every widget
+* ``lv_obj_center()`` centres any widget within its parent
+* The label uses the built-in ``montserrat_20`` font by default
 
-* How the shared ``Display`` class initializes the hardware
-* Creating a basic LVGL label widget
-* Centering and styling text
+Try This Next
+=============
 
-Expected Result
-===============
-
-After uploading, the TFT screen shows:
-
-| **TEST**
-| *Hello World!*
-| *Arduino LVGL*
-
-centered on a white background. Touch functionality is active but not used yet.
+* Change the text to your own message
+* Add ``lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_RED), 0);`` to change the text colour

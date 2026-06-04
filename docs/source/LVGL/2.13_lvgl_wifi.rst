@@ -1,24 +1,63 @@
 .. _lvgl_wifi:
 
-============================
+====================================
 2.13 WiFi Connection Manager
-============================
+====================================
 
-A graphical WiFi scanner and connection manager with an on-screen keyboard for password entry.
+Scan for WiFi networks and connect using an on-screen keyboard for password entry.
 
 Overview
 ========
 
-This project builds a complete WiFi management UI. It scans for nearby networks, displays them in a scrollable list, and provides an on-screen keyboard for entering passwords — no Serial Monitor required.
+This example builds a complete WiFi management UI. It scans for nearby networks, displays them in a scrollable list with signal strength, and provides an on-screen keyboard for entering passwords — all through the touchscreen.
 
 What You'll Learn
 =================
 
 * Scanning WiFi networks with ``WiFi.scanNetworks()``
-* Populating a scrollable LVGL list with network names
-* Creating a custom on-screen keyboard with buttons
-* Building password input dialogs (``lv_obj_t`` as a modal)
-* Displaying connection status and IP address
+* Populating and refreshing an LVGL list widget
+* Building a password dialog with ``lv_textarea`` and ``lv_keyboard``
+* Displaying connection status and assigned IP address
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/13_LVGL_WIFI/13_LVGL_WIFI.ino``
+
+This example uses the ESP32-S3's built-in Wi-Fi. No external wiring is required.
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``13_LVGL_WIFI.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, the screen shows:
+
+   * A **"Scan"** button — tap it to search for nearby WiFi networks
+   * A scrollable list of detected networks, each showing the SSID and signal strength indicator
+   * A status label at the bottom ("Disconnected" or "Connected")
+
+   Tap any network in the list. A dialog appears with:
+
+   * The network name (SSID) displayed at the top
+   * A text area for the password
+   * An on-screen keyboard to type the password
+   * **Cancel** and **Connect** buttons
+
+   Enter the password and tap **Connect**. The status label updates to show the connection progress and, if successful, the assigned IP address.
+
+.. image:: img/lvgl13.jpg
+   :alt: LVGL WiFi Manager
+   :align: center
 
 How the Code Works
 ==================
@@ -27,45 +66,56 @@ How the Code Works
 
 .. code-block:: cpp
 
-   static void refreshNetworks() {
-       lv_obj_clean(list);
+   static void scanNetworks() {
+       lv_obj_clean(networkList);
        int n = WiFi.scanNetworks();
+
        for (int i = 0; i < n; i++) {
            String ssid = WiFi.SSID(i);
            int rssi = WiFi.RSSI(i);
-           lv_obj_t *btn = lv_list_add_btn(list, NULL, ssid.c_str());
-           // Store SSID in button user data
+
+           lv_obj_t *btn = lv_list_add_btn(networkList,
+               LV_SYMBOL_WIFI, ssid.c_str());
+           lv_obj_add_event_cb(btn, networkCb,
+               LV_EVENT_CLICKED, (void *)ssid.c_str());
        }
    }
 
-**Password Keyboard**
-
-When a network is selected, a dialog with an on-screen keyboard appears:
+**Password Dialog with Keyboard**
 
 .. code-block:: cpp
 
    static void showPasswordDialog(const char *ssid) {
        lv_obj_t *kb = lv_keyboard_create(lv_scr_act());
        lv_obj_t *ta = lv_textarea_create(lv_scr_act());
-       lv_keyboard_set_textarea(kb, ta);
 
-       // Connect button event
-       lv_obj_add_event_cb(connect_btn, connect_cb, LV_EVENT_CLICKED, ssid);
+       lv_keyboard_set_textarea(kb, ta);
+       lv_textarea_set_password_mode(ta, true);  // Hide password
+
+       // Connect button calls WiFi.begin(ssid, password)
    }
 
 **Connection**
 
 .. code-block:: cpp
 
-   WiFi.begin(ssid, lv_textarea_get_text(ta));
-   while (WiFi.status() != WL_CONNECTED) { delay(500); }
-   lv_label_set_text_fmt(ipLabel, "IP: %s", WiFi.localIP().toString());
+   WiFi.begin(targetSSID, lv_textarea_get_text(passwordTA));
 
-Expected Result
-===============
+   // In loop(), check WiFi.status() and update status label
+   if (WiFi.status() == WL_CONNECTED) {
+       lv_label_set_text_fmt(statusLabel,
+           "Connected\nIP: %s", WiFi.localIP().toString());
+   }
 
-- Tap "Scan" to list nearby WiFi networks
-- Tap a network name to open the password dialog with keyboard
-- Enter the password and tap "Connect"
-- Status label shows "Connecting..." then "Connected" with the IP address
-- A refresh button re-scans for new networks
+In the provided sketch:
+
+* ``WiFi.scanNetworks()`` returns synchronously with the list of access points
+* The on-screen keyboard is LVGL's built-in ``lv_keyboard`` widget
+* Password mode hides the typed characters with dots
+
+Try This Next
+=============
+
+* Save the SSID and password to preferences so you don't need to re-enter them
+* Add a signal strength icon (bars) next to each network name
+* Display the MAC address and RSSI in the connection details

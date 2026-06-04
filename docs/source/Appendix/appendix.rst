@@ -10,4 +10,3 @@ Appendix
    arduino_ins
    lib_ins
    online_flasher
-   lib_ins

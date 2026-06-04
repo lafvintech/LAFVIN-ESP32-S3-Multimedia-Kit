@@ -1,30 +1,85 @@
 .. _lvgl_gallery:
 
-===========================
+==============================
 2.8 SD Card Photo Gallery
-===========================
+==============================
 
-Browsing and displaying BMP images stored on the SD card with a touch-friendly gallery UI.
+Browse and display BMP images stored on the SD card with a touch-friendly photo gallery.
 
 Overview
 ========
 
-This project creates a photo viewer app that scans the SD card for BMP images and displays them with forward/back navigation. It combines file system operations, image rendering, and UI navigation.
+This example creates a photo viewer application. It scans the SD card's ``/picture/`` folder for BMP images, builds a navigation list, and lets you browse through photos with left/right arrow buttons.
 
 What You'll Learn
 =================
 
-* Scanning a directory for specific file types (``.bmp``)
+* Scanning a directory for specific file types
 * Building a linked list of file paths in memory
-* Displaying BMP images from SD card using LVGL
+* Loading and displaying BMP images from the SD card
 * Implementing gallery-style navigation (previous, next, home)
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/08_LVGL_Gallery/08_LVGL_Gallery.ino``
+
+.. note::
+   Before uploading, create a ``/picture/`` folder on your SD card and place some 240×240 BMP images inside. The photos you captured in :ref:`lvgl_camera` will appear here automatically.
+
+Upload and Test
+===============
+
+#. Insert a Micro SD card with BMP images in the ``/picture/`` folder.
+#. Connect the board with a USB Type-C data cable.
+#. Open ``08_LVGL_Gallery.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading:
+
+   * The first photo from ``/picture/`` is displayed
+   * Tap the **right arrow** to view the next photo
+   * Tap the **left arrow** to view the previous photo
+   * Tap the **home icon** (top-left corner) to return
+
+.. image:: img/lvgl8.jpg
+   :alt: LVGL Gallery
+   :align: center
 
 How the Code Works
 ==================
 
 **Scanning the SD Card**
 
-On startup, the gallery scans ``/picture/`` for ``.bmp`` files and builds a linked list:
+.. code-block:: cpp
+
+   #include "sd_card.h"
+
+   File dir = SD_MMC.open("/picture");
+   File entry = dir.openNextFile();
+
+   while (entry) {
+       if (String(entry.name()).endsWith(".bmp")) {
+           // Add filename to a linked list for navigation
+       }
+       entry = dir.openNextFile();
+   }
+
+**Displaying a Photo**
+
+.. code-block:: cpp
+
+   lv_img_set_src(display_img, filename.c_str());
+   // lv_img handles BMP loading from the file path automatically
+
+**Navigation with Linked List**
 
 .. code-block:: cpp
 
@@ -33,42 +88,18 @@ On startup, the gallery scans ``/picture/`` for ``.bmp`` files and builds a link
        PhotoNode *next;
    };
 
-   void scanPhotos(fs::FS &fs, const char *path, PhotoNode **head) {
-       File dir = fs.open(path);
-       while (true) {
-           File entry = dir.openNextFile();
-           if (!entry) break;
-           if (String(entry.name()).endsWith(".bmp")) {
-               // Add to linked list
-           }
-       }
-   }
+   PhotoNode *current = photos;   // Start at first photo
+   current = current->next;       // Move to next
 
-**Displaying Images**
+In the provided sketch:
 
-Images are loaded from SD and rendered as LVGL image objects:
+* The SD card is mounted in 1-bit SDMMC mode (CLK=39, CMD=38, D0=40)
+* Images are assumed to be 240×240 BMP format
+* Navigation wraps around at the ends of the list
 
-.. code-block:: cpp
+Try This Next
+=============
 
-   void showPhoto(PhotoNode *node) {
-       // Load BMP from SD card
-       // Display at 240x240 in the center of screen
-   }
-
-**Navigation Buttons**
-
-- Left arrow: previous photo
-- Right arrow: next photo
-- Home/ESC icon: return to gallery list overview
-
-Expected Result
-===============
-
-#. Before uploading, create a ``/picture/`` folder on the SD card and place some 240×240 BMP images inside.
-
-#. The gallery displays the first photo with navigation buttons.
-
-#. Use the left/right buttons to browse through all images on the card.
-
-.. note::
-   Images should be resized to 240×240 pixels in BMP format for optimal display. Larger images will be cropped.
+* Add a "slideshow" mode that auto-advances every few seconds
+* Display the filename or image number at the bottom of the screen
+* Sort the photos alphabetically or by file date

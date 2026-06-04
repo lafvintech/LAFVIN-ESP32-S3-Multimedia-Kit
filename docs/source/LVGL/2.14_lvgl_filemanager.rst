@@ -1,24 +1,59 @@
 .. _lvgl_filemanager:
 
-===============================
+=================================
 2.14 SD Card File Manager
-===============================
+=================================
 
-A graphical file browser for the SD card with directory navigation, file info, and delete functionality.
+Browse, navigate, and manage files on the SD card through a graphical file explorer.
 
 Overview
 ========
 
-This project creates a complete file manager UI on the touchscreen. You can browse directories, view file details (name, size), and delete files — all from the touch interface without needing a computer.
+This example creates a complete file manager for the SD card. You can browse folders, view file details (name, size), delete files, and navigate through the directory tree — all from the touchscreen, no computer needed.
 
 What You'll Learn
 =================
 
-* Building a file system explorer with LVGL list widget
-* Handling directory navigation (drill-down with breadcrumb path display)
-* Displaying file metadata (name, size)
-* Implementing file operations (delete) through UI dialogs
-* Confirmation dialogs for destructive actions
+* Building a file system explorer with the LVGL list widget
+* Implementing directory navigation with a breadcrumb path display
+* Displaying file metadata
+* Creating confirmation dialogs for destructive actions (file deletion)
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/14_LVGL_File_Manager/14_LVGL_File_Manager.ino``
+
+.. note::
+   You need a Micro SD card formatted as **FAT32** inserted. The SD card from :ref:`arduino_sdmmc` with test files will work perfectly.
+
+Upload and Test
+===============
+
+#. Insert a FAT32-formatted Micro SD card.
+#. Connect the board with a USB Type-C data cable.
+#. Open ``14_LVGL_File_Manager.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, the screen shows:
+
+   * A path breadcrumb at the top (e.g., ``/music/albums/``)
+   * A scrollable list of files and folders
+   * Folders are shown with a directory icon — tap to enter them
+   * Files are shown with a file icon — tap to see details
+
+   Tapping a file opens a dialog with its name and size. A **Delete** button lets you remove the file (with a confirmation prompt). Tap the current path or a parent folder to navigate back up the tree.
+
+.. image:: img/lvgl14.jpg
+   :alt: LVGL File Manager
+   :align: center
 
 How the Code Works
 ==================
@@ -29,53 +64,54 @@ How the Code Works
 
    static void navigateTo(const char *path) {
        File dir = SD_MMC.open(path);
-       lv_obj_clean(fileList);
+       lv_obj_clean(fileList);          // Clear current listing
 
        File entry = dir.openNextFile();
        while (entry) {
+           lv_obj_t *btn;
            if (entry.isDirectory()) {
-               lv_obj_t *btn = lv_list_add_btn(fileList, LV_SYMBOL_DIRECTORY,
-                                               entry.name());
-               // Add callback to navigate into this directory
+               btn = lv_list_add_btn(fileList,
+                   LV_SYMBOL_DIRECTORY, entry.name());
            } else {
-               lv_obj_t *btn = lv_list_add_btn(fileList, LV_SYMBOL_FILE,
-                                               entry.name());
-               // Add callback to show file info / delete dialog
+               btn = lv_list_add_btn(fileList,
+                   LV_SYMBOL_FILE, entry.name());
            }
+           lv_obj_add_event_cb(btn, entryCb,
+               LV_EVENT_CLICKED, strdup(entry.path()));
            entry = dir.openNextFile();
        }
    }
 
-**Current Path Display**
-
-A label at the top shows the current directory path (e.g., ``/music/albums/``) and updates when navigating.
-
-**File Operations Dialog**
-
-Tapping a file opens a dialog showing:
-- File name
-- File size
-- Delete button (with confirmation)
+**File Details and Deletion**
 
 .. code-block:: cpp
 
-   static void deleteFile(const char *path) {
+   static void showFileDialog(const char *path) {
+       File f = SD_MMC.open(path);
+       size_t size = f.size();
+       f.close();
+
+       // Create dialog overlay with file name, size, and Delete button
+       lv_label_set_text_fmt(sizeLabel, "Size: %u bytes", size);
+
+       // Delete button callback
        SD_MMC.remove(path);
-       // Refresh current directory listing
+       navigateTo(currentPath);  // Refresh listing
    }
 
 **WiFi Status Badge**
 
-A small WiFi icon in the header indicates whether the board is connected to a network.
+A small icon in the header shows whether the board is currently connected to a Wi-Fi network.
 
-Expected Result
-===============
+In the provided sketch:
 
-- A scrollable list of files and folders on the SD card
-- Tap a folder to navigate into it
-- Tap a file to view its details (name, size) and option to delete
-- Current path shown at the top
-- Tap the back arrow (or folder name) to go up one level
+* Navigation is recursive — each folder tap calls ``navigateTo()`` with the new path
+* The current path is updated and displayed as a breadcrumb
+* File deletion includes a confirmation step to prevent accidental removal
 
-.. caution::
-   The delete operation removes files permanently from the SD card. There is no recycle bin or undo.
+Try This Next
+=============
+
+* Add a "New Folder" button to create directories from the touchscreen
+* Display file modification dates alongside sizes
+* Add drag-to-scroll for long file lists

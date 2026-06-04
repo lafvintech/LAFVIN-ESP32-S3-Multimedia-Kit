@@ -1,65 +1,90 @@
 .. _arduino_play_sdmp3:
 
-======================================
+=================================
 1.5.1 MP3 Playback from SD Card
-======================================
+=================================
 
-Playing MP3 audio files stored on a Micro SD card through the I2S audio amplifier and speaker.
+Play MP3 audio files stored on a Micro SD card through the I2S audio amplifier.
 
 Overview
 ========
 
-This project demonstrates digital audio playback using the I2S (Inter-IC Sound) protocol. You'll read an MP3 file from the SD card and stream it to the MAX98357A amplifier, which drives the speaker.
+This example combines the SD card and the I2S audio output to play MP3 music files. You'll mount the SD card, find an MP3 file, and stream its decoded audio to the MAX98357A amplifier that drives the onboard speaker.
 
 What You'll Learn
 =================
 
-* I2S audio output configuration
-* Using the ESP32-audioI2S library
-* Combining SD card reading with audio streaming
+* Configuring I2S audio output pins with the ``Audio`` library
+* Streaming MP3 data from an SD card to an I2S DAC
+* Using ``audio.loop()`` to keep playback running
 
-Pin Connections
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/5.1_Play_SDMMC/5.1_Play_SDMMC.ino``
+
+.. note::
+   Before uploading, copy an MP3 file named ``test1.mp3`` to the ``/music/`` folder on your SD card.
+
+=========== ========
+Signal      ESP32-S3
+=========== ========
+SD CLK      GPIO 39
+SD CMD      GPIO 38
+SD D0       GPIO 40
+I2S BCLK    GPIO 42
+I2S LRC     GPIO 14
+I2S DOUT    GPIO 41
+=========== ========
+
+Upload and Test
 ===============
 
-=========== ========
-MAX98357A   ESP32-S3
-=========== ========
-BCLK        GPIO 42
-LRC         GPIO 14
-DIN (DOUT)  GPIO 41
-GAIN (SD)   GND
-=========== ========
+#. Prepare a Micro SD card with an MP3 file at ``/music/test1.mp3``.
+#. Insert the SD card, then connect the board with a USB Type-C data cable.
+#. Open ``5.1_Play_SDMMC.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. Open **Serial Monitor** at ``115200`` baud. The audio track starts playing through the onboard speaker automatically. Metadata (if embedded in the MP3) is printed to the Serial Monitor.
 
 How the Code Works
 ==================
 
-**Step 1: Mount the SD Card**
+**SD Card Mount**
 
 .. code-block:: cpp
 
    #include "SD_MMC.h"
 
-   SD_MMC.begin("/sdcard", true);
+   SD_MMC.setPins(38, 39, 40);                 // CMD, CLK, D0
+   SD_MMC.begin("/sdcard", true);              // 1-bit mode
 
-**Step 2: Initialize Audio**
+**Audio Output Setup**
 
 .. code-block:: cpp
 
    #include "Audio.h"
 
    Audio audio;
-   audio.setPinout(/*BCLK*/42, /*LRC*/14, /*DOUT*/41);
-   audio.setVolume(15);
+   audio.setPinout(42, 14, 41);  // BCLK, LRC, DOUT
+   audio.setVolume(15);          // Range: 0 (mute) to 21 (max)
 
-**Step 3: Play Audio from SD**
+**Play MP3 from SD**
 
 .. code-block:: cpp
 
    audio.connecttoFS(SD_MMC, "/music/test1.mp3");
 
-**Step 4: Keep Audio Running**
+**Audio Loop**
 
-The audio library needs to be called in the loop to decode and stream data:
+The ``audio.loop()`` call processes the audio pipeline — decoding MP3 frames and feeding I2S data. It must be called continuously in ``loop()``:
 
 .. code-block:: cpp
 
@@ -67,14 +92,17 @@ The audio library needs to be called in the loop to decode and stream data:
        audio.loop();
    }
 
-Expected Result
-===============
+In the provided sketch:
 
-#. Before uploading, copy an MP3 file to the SD card in the ``/music/`` folder with the name ``test1.mp3``.
+* The SD card is mounted in 1-bit SDMMC mode, matching the board's pinout
+* The I2S pins are hard-wired to the MAX98357A on the board
+* Volume 15 is a comfortable default level
 
-#. Upload the sketch. The audio file plays automatically through the speaker.
+Try This Next
+=============
 
-#. Audio metadata (if present) is printed to the Serial Monitor (115200 baud).
+* Replace ``test1.mp3`` with your own MP3 files (keep the same file path)
+* Change ``audio.setVolume(15)`` to a different value
+* Combine with the SD card file listing in :ref:`arduino_sdmmc` to browse and play different tracks
 
-.. note::
-   The default volume can be adjusted with ``audio.setVolume()``. Values range from 0 (mute) to 21 (maximum).
+.. 本章节使用的音乐播放示例参考了 ESP32-audioI2S 库中的 I2Saudio_SD_MMC.cpp 示例。结合本开发板的实际硬件配置，我们对 SD_MMC 和 I2S 的引脚设置、SD 卡初始化方式以及本地音频文件播放流程进行了修改和优化，使程序结构更加清晰，也更方便学习与调试。

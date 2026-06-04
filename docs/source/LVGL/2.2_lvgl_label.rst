@@ -1,30 +1,57 @@
 .. _lvgl_label:
 
-=============================
+===================================
 2.2 Label and Button Controls
-=============================
+===================================
 
-Creating interactive UI elements with LVGL label and button widgets.
+Build an interactive UI with clickable buttons and a dynamic counter label.
 
 Overview
 ========
 
-This project introduces interactive widgets. You'll create buttons that respond to touch events and a label that updates dynamically. This is the foundation for all interactive GUIs.
+This example introduces interactive widgets. You will create a counter controlled by plus and minus buttons, plus "Show" and "Color" buttons that demonstrate LVGL's text formatting features — including inline colour codes.
 
 What You'll Learn
 =================
 
-* Creating and styling buttons (``lv_btn``)
-* Assigning event callbacks to handle user clicks
-* Updating label text dynamically at runtime
-* Using LVGL text recoloring (``#RRGGBB text#`` syntax)
+* Creating and configuring buttons (``lv_btn``)
+* Attaching event callbacks to respond to touch
+* Updating label text at runtime with ``lv_label_set_text_fmt()``
+* Using LVGL text recolouring (``#FF0000 text#`` syntax)
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/02_LVGL_Lable/02_LVGL_Lable.ino``
+
+Upload and Test
+===============
+
+#. Connect the board with a USB Type-C data cable.
+#. Open ``02_LVGL_Lable.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, the screen shows:
+
+   * A counter label (e.g., "Count: 0") with **+** and **-** buttons
+   * A **"Show"** button — tap it to display a plain text message
+   * A **"Color"** button — tap it to display rainbow-coloured text
+
+.. image:: img/lvgl2.png
+   :alt: LVGL Label and Button
+   :align: center
 
 How the Code Works
 ==================
 
-**Creating the Counter**
-
-A label shows a number, with "+" and "-" buttons to increment and decrement it:
+**Counter with Event Callbacks**
 
 .. code-block:: cpp
 
@@ -33,27 +60,33 @@ A label shows a number, with "+" and "-" buttons to increment and decrement it:
 
    static void btn_plus_cb(lv_event_t *e) {
        counter++;
-       lv_label_set_text_fmt(label, "Counter: %d", counter);
+       lv_label_set_text_fmt(label, "Count: %d", counter);
    }
 
    lv_obj_t *btn_plus = lv_btn_create(lv_scr_act());
    lv_obj_add_event_cb(btn_plus, btn_plus_cb, LV_EVENT_CLICKED, NULL);
 
-**Text Recoloring**
+   lv_obj_t *btn_label = lv_label_create(btn_plus);
+   lv_label_set_text(btn_label, "+");
 
-LVGL supports inline color formatting in labels. When the "Color" button is pressed, a multi-colored message is displayed:
+**Text Recolouring**
+
+LVGL supports inline colour formatting in labels:
 
 .. code-block:: cpp
 
+   lv_label_set_recolor(label, true);  // Enable colour codes
    lv_label_set_text(label, "#FF0000 Hello# #00FF00 World#");
 
-Expected Result
-===============
+In the provided sketch:
 
-The screen shows:
-- A counter label with "+" and "-" buttons (increment/decrement the number)
-- A "Show" button that changes the caption to plain text
-- A "Color" button that displays rainbow-colored text
+* Four buttons are created, each with ``LV_EVENT_CLICKED`` callbacks
+* The counter uses ``lv_label_set_text_fmt()`` for formatted integer display
+* ``lv_event_get_user_data(e)`` identifies which button was pressed from a single callback
 
-.. note::
-   Text recoloring must be enabled on the label: ``lv_label_set_recolor(label, true)``.
+Try This Next
+=============
+
+* Add a reset button that sets the counter back to 0
+* Experiment with more colour codes: ``#0000FF``, ``#FF00FF``, ``#00FFFF``
+* Use ``lv_label_set_long_mode()`` to see how long text wraps

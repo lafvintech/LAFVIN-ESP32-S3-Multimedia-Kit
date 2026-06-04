@@ -1,35 +1,69 @@
 .. _lvgl_camera:
 
-====================================
-2.7 Camera Preview and Photo Capture
-====================================
+=======================================
+2.7 Camera Live Preview and Capture
+=======================================
 
-Live camera preview on the TFT screen with gesture controls and BMP photo capture to SD card.
+Stream live camera video to the TFT screen and capture photos to the SD card.
 
 Overview
 ========
 
-This project integrates the OV2640 camera with LVGL to create a real-time viewfinder. You can see what the camera sees directly on the screen, capture photos to the SD card, and control camera settings with touch gestures.
+This example turns the board into a handheld camera. It displays a live 240×240 viewfinder on the TFT screen, lets you capture photos as BMP files to the SD card with a single tap, and supports swipe gestures for mirroring and flipping the image.
 
 What You'll Learn
 =================
 
-* Streaming camera frames to an LVGL image object
-* Using FreeRTOS tasks for parallel camera frame grabbing
+* Streaming camera frames to an LVGL image object in real time
+* Using a FreeRTOS task for dedicated camera frame grabbing
 * Double-buffering for tear-free display
-* Saving BMP images to SD card
-* Implementing swipe gestures (mirror/flip toggle)
+* Saving BMP files to SD card
+* Implementing swipe gesture detection
+
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/07_LVGL_Camera/07_LVGL_Camera.ino``
+
+.. note::
+   You need a Micro SD card formatted as **FAT32** inserted for photo capture.
+
+Upload and Test
+===============
+
+#. Insert a FAT32-formatted Micro SD card.
+#. Connect the board with a USB Type-C data cable.
+#. Open ``07_LVGL_Camera.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. After uploading, you see a live 240×240 camera preview on the left side of the screen.
+
+   * Tap the **camera icon** (right side, 80×80) to capture a BMP photo to ``/picture/`` on the SD card
+   * **Swipe left or right** to toggle horizontal mirror
+   * **Swipe up or down** to toggle vertical flip
+   * Tap the **exit icon** (top-right corner) to return (used in the All-In-One launcher)
+
+.. image:: img/lvgl7.jpg
+   :alt: LVGL Camera
+   :align: center
 
 How the Code Works
 ==================
 
-**Camera Frame Grabber (FreeRTOS Task)**
+**FreeRTOS Capture Task**
 
-A separate FreeRTOS task continuously reads RGB565 frames from the camera and writes them into a double-buffer:
+A dedicated task runs on the second core, continuously grabbing RGB565 frames from the camera:
 
 .. code-block:: cpp
 
-   static void cameraTask(void *pvParameters) {
+   void cameraTask(void *pv) {
        while (true) {
            camera_fb_t *fb = esp_camera_fb_get();
            memcpy(buf[activeBuf], fb->buf, BUF_SIZE);
@@ -39,39 +73,34 @@ A separate FreeRTOS task continuously reads RGB565 frames from the camera and wr
        }
    }
 
-**LVGL Image Display**
+**LVGL Display Refresh**
 
-The main LVGL task checks for a new frame and updates the image object (240×240 region):
+The main LVGL loop checks for a new frame and updates an ``lv_img`` object. A double-buffer prevents tearing:
 
 .. code-block:: cpp
 
    if (frameReady) {
        lv_img_set_src(camera_img, buf[activeBuf]);
        frameReady = false;
-       activeBuf = !activeBuf;  // Swap buffers
+       activeBuf = !activeBuf;
    }
 
-**Photo Capture**
+**Photo Capture to SD**
 
-Tapping the camera icon captures the current frame as a BMP file on the SD card.
+.. code-block:: cpp
 
-**Gesture Controls**
+   // Grab current frame as RGB565, convert to BMP, write to SD
+   write_rgb565_to_bmp(frameBuf, 240, 240, "/picture/capture.bmp");
 
-- Swipe left/right: toggle horizontal mirror
-- Swipe up/down: toggle vertical flip
+In the provided sketch:
 
-Pin Connections
-===============
+* The camera runs in 240×240 RGB565 mode at 10 MHz XCLK
+* PSRAM is required for the double-buffered approach — ensure it is enabled in board settings
+* Swipe direction is detected by tracking the start and end coordinates of touch gestures
 
-Same camera pinout as :ref:`arduino_camera_server`. SD card for saving photos.
+Try This Next
+=============
 
-Expected Result
-===============
-
-- Live 240×240 camera preview on the left side of the screen
-- Photo capture button on the right — tap to save a BMP to the SD card
-- Swipe gestures mirror/flip the preview
-- Tap the exit button to return
-
-.. note::
-   The camera preview requires significant CPU and memory resources. The double-buffering approach ensures smooth, tear-free video.
+* Change capture resolution by editing the camera config
+* Add a timestamp to the saved filename using ``millis()``
+* Increase the preview frame rate by reducing ``vTaskDelay()``

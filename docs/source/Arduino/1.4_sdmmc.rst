@@ -1,84 +1,121 @@
 .. _arduino_sdmmc:
 
-======================
+========================
 1.4 SD Card (SDMMC)
-======================
+========================
 
-Reading and writing files on a Micro SD card using the SDMMC 1-bit interface.
+Read and write files on a Micro SD card using the SDMMC 1-bit interface.
 
 Overview
 ========
 
-This project teaches you how to use the SD card slot on the board via the high-speed SDMMC interface. You'll learn file system operations: creating and deleting directories, reading and writing files, and running performance benchmarks.
+This example teaches file system operations on the ESP32-S3 using the high-speed SDMMC interface. It mounts an SD card, detects its type and size, then runs through a full file I/O test — creating, reading, writing, appending, renaming, and deleting files.
 
 What You'll Learn
 =================
 
-* Mounting an SD card with SDMMC in 1-bit mode
-* File system operations: list, create, delete, read, write, append, rename
-* Measuring read/write performance
+* Mounting an SD card with the ``SD_MMC`` library in 1-bit mode
+* Configuring custom SDMMC pins with ``setPins()``
+* File system operations: list, create, read, write, append, rename, delete
+* Measuring read/write throughput
 
-Pin Connections
-===============
+Setup Notes
+===========
+
+Make sure you have already completed:
+
+* :ref:`driver_install`
+* :ref:`environment_setup`
+
+Open the example sketch from the code package:
+
+``LAFVIN-ESP32-S3-Multimedia-Kit-main/1.Arduino/4.SDMMC/4.SDMMC.ino``
+
+.. note::
+   You need a Micro SD card formatted as **FAT32**. Insert it into the onboard card slot before powering the board.
 
 ======== ========
-SD Slot  ESP32-S3
+Signal   ESP32-S3
 ======== ========
 CLK      GPIO 39
 CMD      GPIO 38
 D0       GPIO 40
-VCC      3.3V
-GND      GND
 ======== ========
+
+The board uses **SDMMC 1-bit mode** — only one data line (D0) is connected. This keeps more GPIOs free for other peripherals while still providing adequate speed for audio and image applications.
+
+Upload and Test
+===============
+
+#. Insert a FAT32-formatted Micro SD card into the slot.
+#. Connect the board with a USB Type-C data cable.
+#. Open ``4.SDMMC.ino`` in Arduino IDE.
+#. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
+#. Click **Upload**.
+#. Open **Serial Monitor** at ``115200`` baud and observe the file operation test::
+
+      SD Card Type: SDHC
+      SD Card Size: 8192MB
+      --- Starting file operation test ---
+      Listing directory: /
+        FILE: hello.txt  SIZE: 24
+      ---
+      Creating Dir: /mydir
+      Dir created
+      ---
+      51200 bytes read for 45 ms
+      1048576 bytes written for 120 ms
+      Total space: 7580MB
+      Used space: 12MB
 
 How the Code Works
 ==================
 
-The sketch initializes the SD card in 1-bit SDMMC mode:
+**Pin Configuration and Mount**
+
+Unlike SPI mode, the SDMMC interface requires explicit pin assignment before mounting:
 
 .. code-block:: cpp
 
-   #include "FS.h"
    #include "SD_MMC.h"
 
-   if (!SD_MMC.begin("/sdcard", true)) {
-       Serial.println("SD Card mount failed");
-       return;
-   }
+   int clk = 39;
+   int cmd = 38;
+   int d0  = 40;
 
-   uint8_t cardType = SD_MMC.cardType();
-   uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
+   SD_MMC.setPins(clk, cmd, d0);
+   SD_MMC.begin("/sdcard", true);   // true = 1-bit mode
 
-The ``sd_helpers.ino`` file provides helper functions for all file operations:
+**Card Detection**
 
 .. code-block:: cpp
 
-   void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
-   void createDir(fs::FS &fs, const char *path);
-   void writeFile(fs::FS &fs, const char *path, const char *message);
-   void readFile(fs::FS &fs, const char *path);
-   void appendFile(fs::FS &fs, const char *path, const char *message);
-   void renameFile(fs::FS &fs, const char *path1, const char *path2);
-   void deleteFile(fs::FS &fs, const char *path);
-   void testFileIO(fs::FS &fs, const char *path);
+   uint8_t cardType = SD_MMC.cardType();
+   // CARD_MMC, CARD_SD (SDSC), CARD_SDHC, or CARD_NONE
 
-The demo runs through a complete test suite: it creates a directory, writes a file, reads it back, appends data, renames and deletes the file, then runs a 1MB read/write benchmark.
+   uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
 
-Expected Result
-===============
+**File Operations**
 
-Insert a Micro SD card and open the Serial Monitor (115200 baud). You'll see output similar to::
+.. code-block:: cpp
 
-   SD Card mounted
-   Card Type: SDHC
-   Card Size: 8192MB
+   writeFile(SD_MMC, "/hello.txt", "Hello ");
+   appendFile(SD_MMC, "/hello.txt", "World!\n");
+   readFile(SD_MMC, "/hello.txt");
+   renameFile(SD_MMC, "/hello.txt", "/foo.txt");
+   deleteFile(SD_MMC, "/foo.txt");
 
-   Listing directory: /
-   -- FILE: test.txt (24 bytes)
-   -- DIR:  mydir/
+In the provided sketch:
 
-   Write: 1MB in 120ms = 8.33 MB/s
-   Read:  1MB in 45ms  = 22.22 MB/s
+* ``sd_helpers.ino`` contains reusable helper functions for each file operation
+* The 1-bit mode is set by the second parameter of ``SD_MMC.begin()``
+* Performance test writes 1MB (2048 × 512-byte blocks) and measures elapsed time
 
-.. note::
-   Format the SD card as FAT32 before use. The SD card must be inserted before powering on the board.
+Try This Next
+=============
+
+* Change ``true`` to ``false`` in ``SD_MMC.begin()`` — but note that 4-bit mode requires additional data pins D1–D3, which may not be connected on this board
+* Create folders to organize your own files (e.g., ``/music``, ``/photos``)
+* Try logging sensor data to a CSV file on the SD card
+
+.. 本章节使用的 SD 卡读写示例可在 Arduino IDE 中找到。为了让程序结构更清晰，我们将其中的文件管理部分单独拆分到一个 .ino 文件中，使主程序更加简洁。
