@@ -68,58 +68,117 @@ Upload and Test
 How the Code Works
 ==================
 
-**Track Scanning**
+The music player logic is mainly implemented in ``music_ui.cpp``.
+
+**Track Loading**
+
+The ``music_ui_prepare_first_track()`` function scans the linked list populated from ``/music/`` and primes the title label with the first filename without auto-playing it. When the user taps play, ``music_ui_play_index()`` constructs the full SD path and calls ``s_audio.connecttoFS()`` to start decoding.
 
 .. code-block:: cpp
 
-   void scanMusic() {
-       File dir = SD_MMC.open("/music");
-       File entry = dir.openNextFile();
+   static bool music_ui_play_index(int index) {
+     if (s_music_count <= 0) {
+       s_track_loaded = false;
+       s_music_paused = false;
+       music_ui_set_title_text(NULL);
+       music_ui_refresh_controls();
+       return false;
+     }
 
-       while (entry) {
-           if (String(entry.name()).endsWith(".mp3")) {
-               // Add filename to playlist linked list
-           }
-           entry = dir.openNextFile();
-       }
+     if (index < 1) {
+       index = s_music_count;
+     } else if (index > s_music_count) {
+       index = 1;
+     }
+
+     char *file_name = list_find_node(list_music, index);
+     if (file_name == NULL) {
+       return false;
+     }
+
+     s_audio.stopSong();
+
+     String file_path = String(MUSIC_FOLDER) + "/" + file_name;
+     s_audio.connecttoFS(SD_MMC, file_path.c_str());
+     s_music_index = index;
+     s_track_loaded = true;
+     s_music_paused = false;
+
+     music_ui_set_title_text(file_name);
+     music_ui_refresh_controls();
+     return true;
    }
 
-**Playback Controls**
+The index is 1-based and wraps around at both ends — going below 1 wraps to ``s_music_count``, and exceeding ``s_music_count`` wraps to 1.
+
+**Play/Pause & Transport Controls**
+
+The ``music_ui_toggle_play_pause()`` function implements a three-state toggle: if no track is loaded it starts the current index, otherwise it calls ``s_audio.pauseResume()`` and flips the ``s_music_paused`` flag. The middle button icon swaps between play and pause symbols accordingly.
 
 .. code-block:: cpp
 
-   static void playPauseCb(lv_event_t *e) {
-       if (isPlaying) {
-           audio.pauseResume();
-           isPlaying = false;
-       } else {
-           if (!isStarted) {
-               audio.connecttoFS(SD_MMC, currentTrack);
-               isStarted = true;
-           } else {
-               audio.pauseResume();
-           }
-           isPlaying = true;
-       }
+   static void music_ui_toggle_play_pause() {
+     if (s_music_count <= 0) {
+       return;
+     }
+
+     if (!s_track_loaded) {
+       music_ui_play_index(s_music_index > 0 ? s_music_index : 1);
+       return;
+     }
+
+     s_audio.pauseResume();
+     s_music_paused = !s_music_paused;
+     music_ui_refresh_controls();
    }
 
-**Volume Slider**
+The previous (``music_ui_play_previous``) and next (``music_ui_play_next``) functions decrement or increment the index with wrap-around, then call ``music_ui_play_index()``. The stop button calls ``music_ui_stop_current()``, which invokes ``s_audio.stopSong()`` and resets ``s_track_loaded``.
+
+**Volume Control**
+
+The volume slider ranges from 0 to 21 and updates the ``Audio`` library in real time. A numeric label below the slider shows the current value.
 
 .. code-block:: cpp
 
-   lv_slider_set_range(volSlider, 0, 21);
-   lv_slider_set_value(volSlider, 10, LV_ANIM_OFF);
+     lv_slider_set_range(ui->volume_slider, 0, 21);
+     lv_slider_set_value(ui->volume_slider, kDefaultVolume, LV_ANIM_OFF);
 
-   static void volumeCb(lv_event_t *e) {
-       int vol = lv_slider_get_value(volSlider);
-       audio.setVolume(vol);
+   static void on_volume_slider_changed(lv_event_t *event) {
+     if (lv_event_get_code(event) != LV_EVENT_VALUE_CHANGED) {
+       return;
+     }
+
+     int volume = lv_slider_get_value(g_music_ui.volume_slider);
+     s_audio.setVolume(volume);
+     music_ui_update_volume_label(volume);
+   }
+
+**Audio Loop & Auto-Advance**
+
+The ``music_ui_loop()`` function, called from the sketch's ``loop()``, feeds the audio decoder with ``s_audio.loop()`` on every iteration. When a track reaches its end, the ``audio_eof_mp3()`` callback sets ``s_play_next_pending = true``, and the loop advances to the next track outside the audio callback context.
+
+.. code-block:: cpp
+
+   void music_ui_loop(void) {
+     s_audio.loop();
+
+     if (s_play_next_pending) {
+       s_play_next_pending = false;
+       music_ui_play_next();
+     }
+   }
+
+   void audio_eof_mp3(const char *info) {
+     Serial.print("eof_mp3     ");
+     Serial.println(info);
+     s_play_next_pending = true;
    }
 
 In the provided sketch:
 
-* ``audio.loop()`` is called continuously in the main loop to keep the audio pipeline running
-* The transport buttons toggle the ``Audio`` library's play/pause/stop/next states
-* Volume ranges from 0 (mute) to 21 (maximum)
+* The ``Audio`` library is initialised with I2S pinout (BCLK=42, LRC=14, DOUT=41) in ``music_ui_audio_init()``
+* Transport buttons are ``lv_img`` objects with transparent backgrounds — only the icon images are visible
+* ``music_ui_refresh_controls()`` enables or dims all transport buttons based on whether ``s_music_count > 0``
 
 Try This Next
 =============

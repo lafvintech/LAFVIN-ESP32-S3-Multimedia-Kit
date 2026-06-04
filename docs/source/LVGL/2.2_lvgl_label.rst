@@ -51,38 +51,74 @@ Upload and Test
 How the Code Works
 ==================
 
-**Counter with Event Callbacks**
+The demo is self-contained in ``02_LVGL_Lable.ino``.
+
+**Shared Event Handler**
+
+All four buttons share a single ``event_handler()`` callback. Each button passes a unique integer ID as user data (``1`` for increment, ``-1`` for decrement, ``2`` for Show, ``3`` for Color). The callback switches on this ID to determine the action.
 
 .. code-block:: cpp
 
-   static int counter = 0;
-   lv_obj_t *label = lv_label_create(lv_scr_act());
+   static void event_handler(lv_event_t * e) {
+     lv_event_code_t code = lv_event_get_code(e);
 
-   static void btn_plus_cb(lv_event_t *e) {
-       counter++;
-       lv_label_set_text_fmt(label, "Count: %d", counter);
+     if(code == LV_EVENT_CLICKED) {
+       intptr_t btn_id = (intptr_t)lv_event_get_user_data(e);
+
+       switch (btn_id) {
+         case 1: // Count +
+           count_val++;
+           lv_label_set_text_fmt(label_count, "Count: %d", count_val);
+           break;
+
+         case -1: // Count -
+           count_val--;
+           lv_label_set_text_fmt(label_count, "Count: %d", count_val);
+           break;
+
+         case 2: // Show Black Text
+           lv_label_set_recolor(label_comment, false);
+           lv_label_set_text(label_comment, "this is simple test comment");
+           lv_obj_set_style_text_color(label_comment, lv_color_black(), 0);
+           break;
+
+         case 3: // Show Colorful Text
+           lv_label_set_recolor(label_comment, true);
+           lv_label_set_text(label_comment, colored_text);
+           break;
+       }
+     }
    }
 
-   lv_obj_t *btn_plus = lv_btn_create(lv_scr_act());
-   lv_obj_add_event_cb(btn_plus, btn_plus_cb, LV_EVENT_CLICKED, NULL);
+Buttons are created with the ID passed as the last argument to ``lv_obj_add_event_cb()``:
 
-   lv_obj_t *btn_label = lv_label_create(btn_plus);
-   lv_label_set_text(btn_label, "+");
+.. code-block:: cpp
+
+     lv_obj_add_event_cb(btn_plus, event_handler, LV_EVENT_CLICKED, (void*)1);
+     lv_obj_add_event_cb(btn_minus, event_handler, LV_EVENT_CLICKED, (void*)-1);
+     lv_obj_add_event_cb(btn_show, event_handler, LV_EVENT_CLICKED, (void*)2);
+     lv_obj_add_event_cb(btn_color, event_handler, LV_EVENT_CLICKED, (void*)3);
 
 **Text Recolouring**
 
-LVGL supports inline colour formatting in labels:
+LVGL supports inline colour formatting with the ``#RRGGBB text#`` syntax. The sketch defines a long ``colored_text`` constant that spells out *"this is simple test comment"* with each character in a different hue. The Color button enables recolouring mode and sets this string; the Show button disables it and reverts to plain black text.
 
 .. code-block:: cpp
 
-   lv_label_set_recolor(label, true);  // Enable colour codes
-   lv_label_set_text(label, "#FF0000 Hello# #00FF00 World#");
+   const char * colored_text =
+       "#FF0000 t##FF8000 h##FFFF00 i##80FF00 s# "
+       "#00FF00 i##00FF80 s# "
+       "#00FFFF s##0080FF i##0000FF m##8000FF p##FF00FF l##FF0080 e# "
+       "#FF0000 t##FF8000 e##FFFF00 s##80FF00 t# "
+       "#00FF00 c##00FF80 o##00FFFF m##0080FF m##0000FF e##8000FF n##FF00FF t#";
+
+The counter label uses ``lv_label_set_text_fmt()`` for formatted integer display, while the comment label uses ``lv_label_set_long_mode(LV_LABEL_LONG_WRAP)`` with a fixed width of 220 px to allow automatic line wrapping.
 
 In the provided sketch:
 
-* Four buttons are created, each with ``LV_EVENT_CLICKED`` callbacks
-* The counter uses ``lv_label_set_text_fmt()`` for formatted integer display
-* ``lv_event_get_user_data(e)`` identifies which button was pressed from a single callback
+* ``count_val`` is a static global, initialised to ``0``
+* The four buttons are arranged: plus/minus centred in the upper half, Show/Color in the lower half
+* ``lv_label_set_recolor(label_comment, true)`` must be called before the ``#RRGGBB`` codes are interpreted
 
 Try This Next
 =============

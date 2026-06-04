@@ -48,6 +48,8 @@ Upload and Test
 #. Click **Upload**.
 #. The screen shows a one-octave piano keyboard (C4 to B4):
 
+.. 音量滑块在右侧
+
    * Seven **white keys** in a row at the bottom
    * Five **black keys** (C#, D#, F#, G#, A#) positioned between the white keys
    * A **volume slider** at the top
@@ -62,45 +64,109 @@ Upload and Test
 How the Code Works
 ==================
 
+The buzzer piano logic is mainly implemented in ``Buzzer_ui.cpp``.
+
 **Note Frequencies**
 
-.. code-block:: cpp
-
-   // White keys: C4  D4  E4  F4  G4  A4  B4
-   float notes[] = {262, 294, 330, 349, 392, 440, 494};
-
-   // Black keys: C#4 D#4 F#4 G#4 A#4
-   float sharps[] = {277, 311, 370, 415, 466};
-
-**Key Press Callback**
+Each piano key is defined by a ``PianoKey`` struct pairing a note name with its frequency in Hz. Seven white keys form a C4–B4 octave.
 
 .. code-block:: cpp
 
-   static void keyCb(lv_event_t *e) {
-       if (!powerOn) return;
+   struct PianoKey {
+     const char *name;
+     uint16_t frequency;
+   };
 
-       int idx = (int)lv_event_get_user_data(e);
-       ledcWriteTone(0, notes[idx]);
+   constexpr PianoKey kPianoKeys[PIANO_KEY_COUNT] = {
+     {"c1", 262},
+     {"d1", 294},
+     {"e1", 330},
+     {"f1", 349},
+     {"g1", 392},
+     {"a1", 440},
+     {"b1", 494},
+   };
+
+Five decorative black keys are rendered as overlapping ``lv_obj`` panels positioned between the white keys via a fixed ``kBlackKeyX[]`` coordinate array.
+
+**Key Press & Release**
+
+The ``key_event_handler()`` listens for three LVGL events: ``LV_EVENT_PRESSED`` starts the tone, while ``LV_EVENT_RELEASED`` and ``LV_EVENT_PRESS_LOST`` both stop it — this prevents stuck notes when a finger slides off the button.
+
+.. code-block:: cpp
+
+   void key_event_handler(lv_event_t *e) {
+     const uint8_t key_index = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(lv_event_get_user_data(e)));
+     const lv_event_code_t code = lv_event_get_code(e);
+
+     if (code == LV_EVENT_PRESSED) {
+       s_active_key = static_cast<int8_t>(key_index);
+       buzzer_play_frequency(kPianoKeys[key_index].frequency);
+       return;
+     }
+
+     if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+       if (s_active_key == static_cast<int8_t>(key_index)) {
+         s_active_key = -1;
+         buzzer_stop_output();
+       }
+     }
    }
 
-   static void keyReleaseCb(lv_event_t *e) {
-       ledcWriteTone(0, 0);  // Stop tone when released
-   }
-
-**Volume Slider**
+The ``buzzer_play_frequency()`` helper guards against three conditions — buzzer disabled, volume at zero, or frequency at zero — and stops output in any of those cases.
 
 .. code-block:: cpp
 
-   static void volumeCb(lv_event_t *e) {
-       int vol = lv_slider_get_value(volSlider);
-       ledcWrite(0, vol);  // Adjust PWM duty for amplitude
+   void buzzer_play_frequency(uint16_t frequency) {
+     if (!s_buzzer_enabled || s_volume == 0 || frequency == 0) {
+       buzzer_stop_output();
+       return;
+     }
+
+     ledcWriteTone(BUZZER_PIN, frequency);
+     ledcWrite(BUZZER_PIN, s_volume);
+   }
+
+**Volume & Power Switch**
+
+The volume slider (range 0–255) updates the active key in real time — if a key is held down while the slider moves, the PWM duty adjusts immediately. The power switch toggles ``s_buzzer_enabled`` and stops output when turned off.
+
+.. code-block:: cpp
+
+   void volume_slider_event_handler(lv_event_t *e) {
+     if (lv_event_get_code(e) != LV_EVENT_VALUE_CHANGED) {
+       return;
+     }
+
+     s_volume = static_cast<uint8_t>(lv_slider_get_value(g_buzzer_ui.volume_slider));
+
+     if (s_active_key >= 0) {
+       buzzer_play_frequency(kPianoKeys[s_active_key].frequency);
+     } else {
+       buzzer_stop_output();
+     }
+   }
+
+   void power_switch_event_handler(lv_event_t *e) {
+     if (lv_event_get_code(e) != LV_EVENT_VALUE_CHANGED) {
+       return;
+     }
+
+     s_buzzer_enabled = lv_obj_has_state(g_buzzer_ui.power_switch, LV_STATE_CHECKED);
+
+     if (!s_buzzer_enabled || s_active_key < 0) {
+       buzzer_stop_output();
+       return;
+     }
+
+     buzzer_play_frequency(kPianoKeys[s_active_key].frequency);
    }
 
 In the provided sketch:
 
-* Black keys are positioned using absolute coordinates to overlap the white keys realistically
-* ``LV_EVENT_PRESSED`` starts the tone and ``LV_EVENT_RELEASED`` stops it
-* The PWM channel uses 8-bit resolution, so the volume slider ranges from 0 to 255
+* The PWM channel uses 8-bit resolution via ``ledcAttach(BUZZER_PIN, 1000, kPwmResolution)``
+* Black keys are ``lv_obj`` panels with ``LV_OBJ_FLAG_CLICKABLE`` cleared — they are purely decorative
+* ``LV_EVENT_ALL`` is used on key buttons to capture both press and release in one callback
 
 Try This Next
 =============

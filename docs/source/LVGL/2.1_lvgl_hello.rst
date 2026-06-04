@@ -48,6 +48,8 @@ If the screen stays blank, check that the **TFT_eSPI** library has been configur
 How the Code Works
 ==================
 
+This minimal sketch is self-contained in ``01_LVGL_Test.ino``.
+
 **The Display Class**
 
 Every LVGL project in this kit shares the same ``Display`` class (found in ``display.h`` and ``display.cpp``). It handles:
@@ -60,35 +62,44 @@ Every LVGL project in this kit shares the same ``Display`` class (found in ``dis
 
    #include "display.h"
 
-   Display display;
+   Display screen;
 
    void setup() {
        Serial.begin(115200);
-       display.init();  // Hardware + LVGL ready
+       screen.init();  // Hardware + LVGL ready
 
        // Add your widgets here...
    }
 
    void loop() {
-       display.routine();  // Calls lv_timer_handler() at ~200Hz
+       screen.routine();  // Calls lv_timer_handler() at ~200Hz
+       delay(5);
    }
 
 **The Label Widget**
 
+The sketch sets a white background, creates a centred label with three lines of text, and applies a ``montserrat_20`` font style with centre alignment.
+
 .. code-block:: cpp
 
-   lv_obj_t *label = lv_label_create(lv_scr_act());
-   lv_label_set_text(label,
-       "TEST\n\n"
-       "Hello World!\n\n"
-       "Arduino LVGL");
-   lv_obj_center(label);
+     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_white(), 0);
+     lv_obj_set_style_bg_opa(lv_scr_act(), LV_OPA_COVER, 0);
+
+     lv_obj_t *label = lv_label_create(lv_scr_act());
+     lv_label_set_text(label, "TEST\nHello World!\nArduino LVGL");
+     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+
+     static lv_style_t style;
+     lv_style_init(&style);
+     lv_style_set_text_font(&style, &lv_font_montserrat_20);
+     lv_style_set_text_align(&style, LV_TEXT_ALIGN_CENTER);
+     lv_obj_add_style(label, &style, 0);
 
 In the provided sketch:
 
 * ``lv_scr_act()`` returns the currently active screen — the starting point for every widget
-* ``lv_obj_center()`` centres any widget within its parent
-* The label uses the built-in ``montserrat_20`` font by default
+* ``lv_obj_align()`` with ``LV_ALIGN_CENTER`` centres the label within the screen
+* The font must be enabled in ``lv_conf.h`` — ``montserrat_20`` is enabled by default in this kit's configuration
 
 Try This Next
 =============

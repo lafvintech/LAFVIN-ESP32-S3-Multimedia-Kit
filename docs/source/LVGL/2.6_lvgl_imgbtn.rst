@@ -59,49 +59,77 @@ Upload and Test
 How the Code Works
 ==================
 
-**Image as a Clickable Button**
+The buzzer control logic is implemented in ``06_LVGL_IMG_BTN.ino``.
+
+**Image Buttons**
+
+Two image objects — a buzzer icon and a mute icon — are created from C-array image data (similar to :ref:`lvgl_image`). Each is made clickable with ``LV_OBJ_FLAG_CLICKABLE`` and assigned an event callback.
 
 .. code-block:: cpp
 
-   #include "image_data.h"
+     img_btn_buzzer = lv_img_create(lv_scr_act());
+     lv_img_set_src(img_btn_buzzer, &buzzer);
+     lv_obj_align(img_btn_buzzer, LV_ALIGN_CENTER, -60, 0);
+     lv_obj_add_flag(img_btn_buzzer, LV_OBJ_FLAG_CLICKABLE);
+     lv_obj_add_event_cb(img_btn_buzzer, buzzer_btn_event_handler, LV_EVENT_CLICKED, NULL);
 
-   lv_obj_t *btn_buzzer = lv_img_create(lv_scr_act());
-   lv_img_set_src(btn_buzzer, &buzzer_img);
+     img_btn_mute = lv_img_create(lv_scr_act());
+     lv_img_set_src(img_btn_mute, &mute);
+     lv_obj_align(img_btn_mute, LV_ALIGN_CENTER, 60, 0);
+     lv_obj_add_flag(img_btn_mute, LV_OBJ_FLAG_CLICKABLE);
+     lv_obj_add_event_cb(img_btn_mute, mute_btn_event_handler, LV_EVENT_CLICKED, NULL);
 
-   lv_obj_add_flag(btn_buzzer, LV_OBJ_FLAG_CLICKABLE);
-   lv_obj_add_event_cb(btn_buzzer, buzzer_on_cb,
-                       LV_EVENT_CLICKED, NULL);
+**Buzzer Control**
 
-**Passive Buzzer with PWM**
+A single ``setBuzzer()`` helper handles both active and passive buzzer types. Active buzzers are driven with ``digitalWrite()``; passive buzzers use ``ledcWriteTone()`` to generate a 2 kHz square wave.
 
 .. code-block:: cpp
 
-   #define BUZZER_PIN 45
+   void setBuzzer(bool state) {
+     buzzer_on = state;
 
-   void buzzerOn() {
-       ledcAttach(BUZZER_PIN, 2000, 8);  // 2kHz, 8-bit resolution
-       ledcWriteTone(0, 2000);           // Play 2kHz tone
+     if(ACTIVE_BUZZER) {
+       digitalWrite(BUZZER_PIN, state ? HIGH : LOW);
+     } else {
+       if(state) {
+         ledcWriteTone(BUZZER_PIN, BUZZER_FREQ);
+       } else {
+         ledcWriteTone(BUZZER_PIN, 0);
+       }
+     }
    }
 
-   void buzzerOff() {
-       ledcWriteTone(0, 0);              // Stop the tone
+   static void buzzer_btn_event_handler(lv_event_t * e) {
+     if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
+       setBuzzer(true);
+     }
    }
 
-**Active Buzzer Mode**
+   static void mute_btn_event_handler(lv_event_t * e) {
+     if(lv_event_get_code(e) == LV_EVENT_CLICKED) {
+       setBuzzer(false);
+     }
+   }
 
-The sketch also supports active (self-oscillating) buzzers:
+**PWM Setup**
+
+During ``setup()``, the buzzer pin is configured based on the type selected by the ``ACTIVE_BUZZER`` compile-time flag. A passive buzzer is attached to a PWM channel with 8-bit resolution.
 
 .. code-block:: cpp
 
-   #ifdef ACTIVE_BUZZER
-       digitalWrite(BUZZER_PIN, HIGH);   // Active buzzer: HIGH = on
-   #endif
+     if(ACTIVE_BUZZER) {
+       pinMode(BUZZER_PIN, OUTPUT);
+       digitalWrite(BUZZER_PIN, LOW);
+     } else {
+       ledcAttach(BUZZER_PIN, BUZZER_FREQ, BUZZER_RESOLUTION);
+       ledcWriteTone(BUZZER_PIN, 0);
+     }
 
 In the provided sketch:
 
-* The two image icons are compiled from C arrays, similar to :ref:`lvgl_image`
-* ``LV_OBJ_FLAG_CLICKABLE`` makes any LVGL object respond to touch events
-* ``ledcWriteTone()`` generates a clean frequency on the PWM channel
+* ``ACTIVE_BUZZER`` is set to ``false`` by default — change it to ``true`` for self-oscillating buzzers
+* The buzzer button is offset 60 px left of centre and the mute button 60 px right
+* ``ON`` / ``OFF`` labels are placed below each button in green / red respectively
 
 Try This Next
 =============
