@@ -19,13 +19,13 @@ What You'll Learn
 * Integrating I2S audio playback with LVGL state management
 * Using a slider widget for volume control
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 

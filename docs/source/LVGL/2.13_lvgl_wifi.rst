@@ -19,13 +19,13 @@ What You'll Learn
 * Building a password dialog with ``lv_textarea`` and ``lv_keyboard``
 * Displaying connection status and assigned IP address
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 

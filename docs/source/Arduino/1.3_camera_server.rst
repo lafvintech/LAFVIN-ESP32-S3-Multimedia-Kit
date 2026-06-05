@@ -19,13 +19,13 @@ What You'll Learn
 * Running an embedded HTTP server for video streaming
 * Understanding ESP32-S3 camera pin mapping (DCMI interface)
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 
@@ -104,5 +104,4 @@ Try This Next
 =============
 
 * Change ``FRAMESIZE_QVGA`` to ``FRAMESIZE_UXGA`` (1600x1200) for higher resolution (requires more bandwidth)
-* Add face detection by looking at the ``esp_camera`` library examples (?)
 * Experiment with flash control if your camera module has an LED

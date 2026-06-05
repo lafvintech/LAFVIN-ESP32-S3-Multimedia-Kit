@@ -11,6 +11,9 @@ Overview
 
 This example interfaces with the MAX30102 optical heart rate sensor over I2C. It reads infrared (IR) reflection data from your fingertip, detects individual heartbeats, and computes a rolling average of beats per minute (BPM).
 
+.. note::
+   This example is based on the open-source ``Example5_HeartRate`` example from the SparkFun MAX3010x sensor library. For the LAFVIN ESP32-S3 Multimedia Kit, we adapted the I2C pin mapping and sensor setup, then added finger-detection debounce, outlier filtering, status reporting, and state reset logic to make the readings more stable for learning and demonstration.
+
 What You'll Learn
 =================
 
@@ -18,13 +21,13 @@ What You'll Learn
 * Real-time sensor data processing
 * Beat detection and BPM calculation with validation
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 
@@ -52,7 +55,7 @@ Upload and Test
       MAX30102 ready.
       Place your finger gently on the sensor and keep still.
 
-#. Gently place your fingertip on the MAX30102 sensor (the small rectangular component with an LED window). After a few seconds, you should see BPM readings::
+#. Gently place your fingertip on the MAX30102 sensor. After a few seconds, you should see BPM readings::
 
       Finger detected. Measuring heart rate...
       BPM=72.5, Avg BPM=73, IR(raw)=155000
@@ -65,63 +68,101 @@ How the Code Works
 
 **Sensor Initialization**
 
+The sketch starts I2C on GPIO 2 and GPIO 1, then configures the MAX30102 with the sampling parameters used for this board.
+
 .. code-block:: cpp
 
-   #include <Wire.h>
-   #include "MAX30105.h"
-   #include "heartRate.h"
+   Wire.begin(IIC_SDA, IIC_SCL);
 
-   MAX30105 particleSensor;
+   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
+     Serial.println("MAX30102/MAX30105 was not found. Please check wiring and power.");
+     while (1) {
+       delay(10);
+     }
+   }
 
-   ParticleSensor.begin(Wire, I2C_SPEED_FAST);
-   ParticleSensor.setup();  // Default config: IR LED only, Red LED off
+   particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange);
+   particleSensor.setPulseAmplitudeGreen(0);
 
 **Finger Detection**
 
-A debouncing algorithm with 8-sample hysteresis determines whether a finger is present:
+The sketch uses debounce counters so a finger is only considered present or removed after several stable samples.
 
 .. code-block:: cpp
 
-   const int FINGER_ON_THRESHOLD  = 12000;
-   const int FINGER_OFF_THRESHOLD = 6000;
-
-   long irValue = particleSensor.getIR();
-
-   if (irValue > FINGER_ON_THRESHOLD) {
-       fingerDetected = true;
-   } else if (irValue < FINGER_OFF_THRESHOLD) {
-       fingerDetected = false;
+   if (lastIrValue >= FINGER_ON_THRESHOLD) {
+     if (fingerOnCount < FINGER_DEBOUNCE_SAMPLES) {
+       fingerOnCount++;
+     }
+     fingerOffCount = 0;
+     if (!fingerPresent && fingerOnCount >= FINGER_DEBOUNCE_SAMPLES) {
+       handleFingerDetected();
+     }
+   } else if (lastIrValue <= FINGER_OFF_THRESHOLD) {
+     if (fingerOffCount < FINGER_DEBOUNCE_SAMPLES) {
+       fingerOffCount++;
+     }
+     fingerOnCount = 0;
+     if (fingerPresent && fingerOffCount >= FINGER_DEBOUNCE_SAMPLES) {
+       handleFingerRemoved();
+     }
    }
 
 **BPM Calculation**
 
+Each detected beat is converted into BPM, then checked before it is accepted into the rolling average.
+
 .. code-block:: cpp
 
-   if (checkForBeat(irValue)) {
-       long delta = millis() - lastBeat;
-       float bpm = 60000.0 / delta;
+   void processHeartRate(uint32_t irValue) {
+     if (!checkForBeat(irValue)) {
+       return;
+     }
 
-       // Validate: must be between 45–180 and within 25 BPM of average
-       if (bpm > 45 && bpm < 180) {
-           rates[rateSpot++] = (byte)bpm;
-           rateSpot %= 8;   // 8-sample rolling window
-       }
+     const long nowMs = millis();
+     if (lastBeatMs == 0) {
+       lastBeatMs = nowMs;
+       return;
+     }
 
-       lastBeat = millis();
+     const float bpm = 60.0f / ((nowMs - lastBeatMs) / 1000.0f);
+     lastBeatMs = nowMs;
+
+     if (!isReasonableBeat(bpm)) {
+       return;
+     }
+
+     beatsPerMinute = bpm;
+     updateAverageRate((int)(bpm + 0.5f));
    }
+
+**Status Reporting**
+
+The sketch prints different status messages depending on whether no finger is detected, the signal is weak, or stable BPM data is available.
+
+.. code-block:: cpp
+
+   void printStatus() {
+     if (!fingerPresent) {
+       Serial.println("status=No finger");
+       return;
+     }
+
+     if (lastIrValue < FINGER_ON_THRESHOLD) {
+       Serial.println("status=Signal too weak");
+       return;
+     }
 
 In the provided sketch:
 
-* The red LED is disabled — only the IR LED is used for heart rate sensing
-* BPM values outside 45–180 are discarded as noise
-* BPM that deviates more than 25 from the running average is also rejected
-* Readings are reported every 1000ms
+* The green LED is disabled, so the sensor uses the IR channel for heart rate measurement
+* BPM values outside the valid range are discarded
+* Readings that differ too much from the rolling average are also rejected
+* Status information is reported once per second
 
 Try This Next
 =============
 
 * Experiment with the ``FINGER_ON_THRESHOLD`` and ``FINGER_OFF_THRESHOLD`` values
-* Increase ``RATE_SIZE`` from 8 to 16 for smoother averaging
-* Graph the raw IR values in Arduino IDE's **Serial Plotter** (Tools > Serial Plotter) to visualise your pulse waveform
-
-.. 本章节的心率检测示例参考了 SparkFun_MAX3010x_Sensor_Library 库中的 Example5_HeartRate 示例。结合本开发板的硬件配置，我们对 I2C 引脚、传感器初始化参数以及心率检测流程进行了适配与优化，并增加了手指佩戴检测、数据防抖、异常心率过滤和状态重置等处理，使测量结果更加稳定，也更适合作为学习和演示示例。
+* Increase ``RATE_AVG_SIZE`` from 8 to 16 for smoother averaging
+* Graph the raw IR values in Arduino IDE's **Serial Plotter** to visualize your pulse waveform

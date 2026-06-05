@@ -10,13 +10,13 @@ LAFVIN ESP32-S3 Multimedia Kit
 
 The LAFVIN ESP32-S3 Multimedia Kit is a comprehensive development platform built around the ESP32-S3 microcontroller, designed for learning embedded systems, IoT, and graphical user interface (GUI) development.
 
-.. figure:: /Tutorial/img/LA075-1.jpg
+.. figure:: /LVGL/img/LA075-1.jpg
    :alt: LAFVIN ESP32-S3 Multimedia Kit
    :align: center
 
    *LAFVIN ESP32-S3 Multimedia Kit*
 
-.. figure:: /Tutorial/img/LA075-2.jpg
+.. figure:: /LVGL/img/LA075-2.jpg
    :alt: LAFVIN ESP32-S3 Multimedia Kit
    :align: center
 

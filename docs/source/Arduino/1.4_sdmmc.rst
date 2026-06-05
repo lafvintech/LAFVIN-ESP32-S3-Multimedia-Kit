@@ -9,7 +9,10 @@ Read and write files on a Micro SD card using the SDMMC 1-bit interface.
 Overview
 ========
 
-This example teaches file system operations on the ESP32-S3 using the high-speed SDMMC interface. It mounts an SD card, detects its type and size, then runs through a full file I/O test — creating, reading, writing, appending, renaming, and deleting files.
+This example teaches file system operations on the ESP32-S3 using the high-speed SDMMC interface. It mounts an SD card, detects its type and size, then runs through a full file I/O test: creating, reading, writing, appending, renaming, and deleting files.
+
+.. note::
+   This example is based on the official open-source SD card file system example available in Arduino IDE. To make the program structure clearer for this kit, we separated the file management functions into a dedicated ``.ino`` file so the main sketch stays easier to read.
 
 What You'll Learn
 =================
@@ -19,13 +22,13 @@ What You'll Learn
 * File system operations: list, create, read, write, append, rename, delete
 * Measuring read/write throughput
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 
@@ -42,7 +45,7 @@ CMD      GPIO 38
 D0       GPIO 40
 ======== ========
 
-The board uses **SDMMC 1-bit mode** — only one data line (D0) is connected. This keeps more GPIOs free for other peripherals while still providing adequate speed for audio and image applications.
+The board uses **SDMMC 1-bit mode**. Only one data line (D0) is connected. This keeps more GPIOs free for other peripherals while still providing adequate speed for audio and image applications.
 
 Upload and Test
 ===============
@@ -73,7 +76,7 @@ How the Code Works
 
 **Pin Configuration and Mount**
 
-Unlike SPI mode, the SDMMC interface requires explicit pin assignment before mounting:
+Unlike SPI mode, the SDMMC interface requires explicit pin assignment before mounting.
 
 .. code-block:: cpp
 
@@ -81,12 +84,14 @@ Unlike SPI mode, the SDMMC interface requires explicit pin assignment before mou
 
    int clk = 39;
    int cmd = 38;
-   int d0  = 40;
+   int d0 = 40;
 
    SD_MMC.setPins(clk, cmd, d0);
    SD_MMC.begin("/sdcard", true);   // true = 1-bit mode
 
 **Card Detection**
+
+The sketch checks whether a card is present and then reads its type and capacity.
 
 .. code-block:: cpp
 
@@ -96,6 +101,8 @@ Unlike SPI mode, the SDMMC interface requires explicit pin assignment before mou
    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
 
 **File Operations**
+
+The file operation test demonstrates the most common filesystem actions.
 
 .. code-block:: cpp
 
@@ -109,13 +116,10 @@ In the provided sketch:
 
 * ``sd_helpers.ino`` contains reusable helper functions for each file operation
 * The 1-bit mode is set by the second parameter of ``SD_MMC.begin()``
-* Performance test writes 1MB (2048 × 512-byte blocks) and measures elapsed time
+* Performance test writes 1MB (2048 x 512-byte blocks) and measures elapsed time
 
 Try This Next
 =============
 
-* Change ``true`` to ``false`` in ``SD_MMC.begin()`` — but note that 4-bit mode requires additional data pins D1–D3, which may not be connected on this board
 * Create folders to organize your own files (e.g., ``/music``, ``/photos``)
 * Try logging sensor data to a CSV file on the SD card
-
-.. 本章节使用的 SD 卡读写示例可在 Arduino IDE 中找到。为了让程序结构更清晰，我们将其中的文件管理部分单独拆分到一个 .ino 文件中，使主程序更加简洁。

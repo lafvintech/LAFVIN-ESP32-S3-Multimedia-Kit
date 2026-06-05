@@ -19,13 +19,13 @@ What You'll Learn
 * Detecting touch points and reading X/Y coordinates
 * Understanding I2C device addressing
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 
@@ -66,40 +66,52 @@ How the Code Works
 
 **Sensor Initialization**
 
+The FT6336U is constructed with I2C pin numbers (SDA=2, SCL=1) and reset/interrupt pins (both set to -1, meaning unused). The ``begin()`` call initialises the I2C bus.
+
 .. code-block:: cpp
 
    #include "FT6336U.h"
 
-   FT6336U ft6336u(FT6336U_ADDR, &Wire);
+   #define I2C_SDA 2
+   #define I2C_SCL 1
+   #define RST_N_PIN -1
+   #define INT_N_PIN -1
 
-   ft6336u.begin();  // I2C init at default address
+   FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN);
+
+   ft6336u.begin();
 
 **Reading Registers**
 
-The FT6336U's internal configuration is read through a series of register reads:
+On startup, the sketch dumps 16 configuration registers from the FT6336U. The API uses ``snake_case`` method names:
 
 .. code-block:: cpp
 
-   Serial.print("Device Mode: 0x");
-   Serial.println(ft6336u.readDeviceMode(), HEX);
+     Serial.print("FT6336U Device Mode: ");
+     Serial.println(ft6336u.read_device_mode());
+     Serial.print("FT6336U Threshold: 0x");
+     Serial.println(ft6336u.read_touch_threshold(), HEX);
+     Serial.print("FT6336U Chip ID: 0x");
+     Serial.println(ft6336u.read_chip_id(), HEX);
+     Serial.print("FT6336U Firm ID: 0x");
+     Serial.println(ft6336u.read_firmware_id(), HEX);
 
-   Serial.print("Firmware ID: 0x");
-   Serial.println(ft6336u.readFirmwareID(), HEX);
+Registers include the device mode, touch threshold, filter coefficient, control mode, power state, active/monitor rates, library version, chip ID, G-mode, firmware ID, and release code.
 
 **Touch Scanning**
 
+The ``scan()`` method returns an ``FT6336U_TouchPointType`` struct containing a ``touch_count`` (up to 2) and an array of ``tp[2]`` entries. Each entry has a ``status`` (1 = pressed, 0 = released), ``x``, and ``y`` coordinate.
+
 .. code-block:: cpp
 
-   TouchPoint touch = ft6336u.scan();  // Returns up to 2 touch points
+   FT6336U_TouchPointType tp;
+   tp = ft6336u.scan();
 
-   Serial.printf("TD Count %d / TD1 (%d, %4d, %4d) / TD2 (%d, %4d, %4d)\n",
-       touch.count,
-       touch.points[0].status,   // 1 = pressed, 0 = released
-       touch.points[0].x,
-       touch.points[0].y,
-       touch.points[1].status,
-       touch.points[1].x,
-       touch.points[1].y);
+   char tempString[128];
+   sprintf(tempString, "FT6336U TD Count %d / TD1 (%d, %4d, %4d) / TD2 (%d, %4d, %4d)",
+       tp.touch_count, tp.tp[0].status, tp.tp[0].x, tp.tp[0].y,
+       tp.tp[1].status, tp.tp[1].x, tp.tp[1].y);
+   Serial.println(tempString);
 
 In the provided sketch:
 

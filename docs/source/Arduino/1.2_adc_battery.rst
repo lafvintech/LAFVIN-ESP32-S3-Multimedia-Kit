@@ -18,13 +18,13 @@ What You'll Learn
 * Configuring ADC attenuation with ``analogSetAttenuation()``
 * Converting a raw ADC reading into an estimated battery voltage
 
-Setup Notes
-===========
+Before You Begin
+================
 
-Make sure you have already completed:
+Complete the setup steps in :ref:`preparation` before continuing.
 
-* :ref:`driver_install`
-* :ref:`environment_setup`
+.. note::
+   Use the recommended Arduino IDE settings in :ref:`arduino_board_settings` unless this lesson says otherwise.
 
 Open the example sketch from the code package:
 
@@ -38,7 +38,7 @@ Signal       ESP32-S3
 V_BAT (1/4)  GPIO 19
 ============ ========
 
-.. warning::
+.. tip:: 
    The ADC pin does not receive the full battery voltage directly. The board uses a resistor divider, and the sketch multiplies the measured pin voltage by ``4.0`` to estimate the battery voltage.
 
 Upload and Test
