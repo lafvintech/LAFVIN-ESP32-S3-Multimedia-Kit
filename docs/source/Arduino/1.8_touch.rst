@@ -9,7 +9,10 @@ Read touch coordinates from the FT6336U capacitive touch controller over I2C.
 Overview
 ========
 
-This example shows how to read multi-touch data from the FT6336U capacitive touch panel controller. On startup, it dumps all configuration registers for debugging, then continuously scans for up to 2 simultaneous touch points.
+This example shows how to read multi-touch data from the FT6336U capacitive touch panel controller. On startup, it dumps the main configuration registers for debugging, then continuously scans for up to 2 simultaneous touch points.
+
+.. note::
+   This example is based on the open-source ``ScanMultiTouch`` example from the Arduino-FT6336U library. For the LAFVIN ESP32-S3 Multimedia Kit, we adapted the I2C and touch-controller pin configuration, kept the multi-touch scanning behavior, and simplified the serial output so the results are easier to read during learning and demonstration.
 
 What You'll Learn
 =================
@@ -47,7 +50,7 @@ Upload and Test
 #. Open ``8.Touch.ino`` in Arduino IDE.
 #. In the **Tools** menu, select ``ESP32S3 Dev Module`` as the board and choose the correct serial port.
 #. Click **Upload**.
-#. Open **Serial Monitor** at ``115200`` baud. On startup, the sketch prints the FT6336U's configuration registers::
+#. Open **Serial Monitor** at ``115200`` baud. On startup, the sketch prints the FT6336U configuration registers::
 
       FT6336U Device Mode: 0x00
       FT6336U Threshold: 0x30
@@ -55,7 +58,7 @@ Upload and Test
       Chip ID: 0x06
       Firmware ID: 0x05
 
-#. Touch the screen. Coordinates appear in the Serial Monitor every 100ms::
+#. Touch the screen. Coordinates appear in the Serial Monitor every 100 ms::
 
       FT6336U TD Count 1 / TD1 (1,  150,  200) / TD2 (0,    0,    0)
 
@@ -66,11 +69,9 @@ How the Code Works
 
 **Sensor Initialization**
 
-The FT6336U is constructed with I2C pin numbers (SDA=2, SCL=1) and reset/interrupt pins (both set to -1, meaning unused). The ``begin()`` call initialises the I2C bus.
+The FT6336U object is created with the board's I2C pins and with reset and interrupt pins disabled.
 
 .. code-block:: cpp
-
-   #include "FT6336U.h"
 
    #define I2C_SDA 2
    #define I2C_SCL 1
@@ -79,51 +80,56 @@ The FT6336U is constructed with I2C pin numbers (SDA=2, SCL=1) and reset/interru
 
    FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN);
 
-   ft6336u.begin();
+**Starting the Controller**
+
+The sketch starts the touch controller in ``setup()`` before reading any status or touch data.
+
+.. code-block:: cpp
+
+   void setup() {
+       Serial.begin(115200);
+
+       ft6336u.begin();
+   }
 
 **Reading Registers**
 
-On startup, the sketch dumps 16 configuration registers from the FT6336U. The API uses ``snake_case`` method names:
+On startup, the sketch reads the main FT6336U configuration registers and prints them to the Serial Monitor.
 
 .. code-block:: cpp
 
-     Serial.print("FT6336U Device Mode: ");
-     Serial.println(ft6336u.read_device_mode());
-     Serial.print("FT6336U Threshold: 0x");
-     Serial.println(ft6336u.read_touch_threshold(), HEX);
-     Serial.print("FT6336U Chip ID: 0x");
-     Serial.println(ft6336u.read_chip_id(), HEX);
-     Serial.print("FT6336U Firm ID: 0x");
-     Serial.println(ft6336u.read_firmware_id(), HEX);
-
-Registers include the device mode, touch threshold, filter coefficient, control mode, power state, active/monitor rates, library version, chip ID, G-mode, firmware ID, and release code.
+      Serial.print("FT6336U Device Mode: ");
+      Serial.println(ft6336u.read_device_mode());
+      Serial.print("FT6336U Threshold: 0x");
+      Serial.println(ft6336u.read_touch_threshold(), HEX);
+      Serial.print("FT6336U Chip ID: 0x");
+      Serial.println(ft6336u.read_chip_id(), HEX);
+      Serial.print("FT6336U Firm ID: 0x");
+      Serial.println(ft6336u.read_firmware_id(), HEX);
 
 **Touch Scanning**
 
-The ``scan()`` method returns an ``FT6336U_TouchPointType`` struct containing a ``touch_count`` (up to 2) and an array of ``tp[2]`` entries. Each entry has a ``status`` (1 = pressed, 0 = released), ``x``, and ``y`` coordinate.
+The ``scan()`` method returns up to two touch points, and the sketch prints their status and coordinates as one formatted line.
 
 .. code-block:: cpp
 
-   FT6336U_TouchPointType tp;
    tp = ft6336u.scan();
-
    char tempString[128];
    sprintf(tempString, "FT6336U TD Count %d / TD1 (%d, %4d, %4d) / TD2 (%d, %4d, %4d)",
        tp.touch_count, tp.tp[0].status, tp.tp[0].x, tp.tp[0].y,
        tp.tp[1].status, tp.tp[1].x, tp.tp[1].y);
    Serial.println(tempString);
+   delay(100);
 
 In the provided sketch:
 
-* The register dump includes 16 configuration values: device mode, thresholds, filter settings, timeouts, read rates, firmware/version info, and power state
-* Touch scanning runs at 100ms intervals — suitable for most UI applications
-* Coordinates are in the display's native resolution (320 × 240)
+* The register dump includes the main FT6336U configuration and identification values
+* Touch scanning runs at 100 ms intervals, which is enough for a simple serial demonstration
+* Coordinates are reported in the display's native coordinate space
 
 Try This Next
 =============
 
-* Reduce the scan interval from 100ms to 20ms for more responsive touch
-* Look at the ``threshold`` register — lowering it makes the panel more sensitive
-* Use the touch coordinates as input for your own projects (e.g., draw on screen, move a cursor)
-
-.. 本章节的触摸示例参考了 Arduino-FT6336U 库中的 ScanMultiTouch 示例。结合本开发板的硬件配置，我们对 I2C 引脚及触摸芯片相关引脚设置进行了适配，并保留了库中的多点触摸扫描功能。同时，对原示例中较为冗长的串口打印内容进行了精简，使输出结果更加直观，也更适合作为学习和演示示例。
+* Reduce the scan interval from 100 ms to 20 ms for more responsive touch updates
+* Experiment with the touch threshold register to change panel sensitivity
+* Use the touch coordinates as input for your own projects, such as drawing or button control
