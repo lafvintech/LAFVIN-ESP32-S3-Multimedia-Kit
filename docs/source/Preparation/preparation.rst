@@ -18,6 +18,9 @@ After completing these steps, you can return to the main tutorial chapters and s
 .. note::
    Use a USB Type-C **data cable**. A charging-only cable can power the board but cannot be used for programming or serial communication.
 
+.. note::
+   This kit is shipped pre-flashed and tested. If you want to quickly restore or reflash the LVGL All-In-One demo without installing Arduino IDE, see :ref:`online_flasher`.
+
 .. toctree::
    :maxdepth: 2
 
@@ -25,3 +28,4 @@ After completing these steps, you can return to the main tutorial chapters and s
    install_driver
    arduino_ins
    lib_ins
+   ../Appendix/online_flasher

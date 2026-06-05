@@ -29,6 +29,9 @@ This multimedia kit is powered by the **ESP32-S3** chip, which features a dual-c
 
 With step-by-step tutorials covering both Arduino fundamentals and advanced LVGL GUI development, this kit takes you from basic GPIO control all the way to building a fully integrated touchscreen application with camera, music player, and more.
 
+.. note::
+   This kit is shipped pre-flashed and tested. If you want to restore or reflash the factory-style LVGL All-In-One demo from your browser, see :ref:`online_flasher`.
+
 Key Features
 ============
 
