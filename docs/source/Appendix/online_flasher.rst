@@ -28,11 +28,11 @@ Flashing Steps
 
    .. image:: img/olf3.png
 
-#. Select the firmware to flash.在这个
+#. Select the firmware to flash.In this kit, we have selected “ALL-IN-ONE”
 
    .. image:: img/olf4.png
 
-#. Select the firmware version.
+#. Select the firmware version.In this kit, we have selected “ALL-IN-ONE”
 
    .. image:: img/olf5.png
 
