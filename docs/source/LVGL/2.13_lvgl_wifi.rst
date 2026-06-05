@@ -31,8 +31,6 @@ Open the example sketch from the code package:
 
 ``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/13_LVGL_WIFI/13_LVGL_WIFI.ino``
 
-This example uses the ESP32-S3's built-in Wi-Fi. No external wiring is required.
-
 Upload and Test
 ===============
 

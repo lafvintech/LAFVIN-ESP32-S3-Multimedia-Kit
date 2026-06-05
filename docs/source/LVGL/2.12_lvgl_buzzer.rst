@@ -48,11 +48,9 @@ Upload and Test
 #. Click **Upload**.
 #. The screen shows a one-octave piano keyboard (C4 to B4):
 
-.. 音量滑块在右侧
-
    * Seven **white keys** in a row at the bottom
    * Five **black keys** (C#, D#, F#, G#, A#) positioned between the white keys
-   * A **volume slider** at the top
+   * A **volume slider** at the right
    * A **power switch** to enable or disable sound output
 
    Make sure the power switch is on, then tap any key. You should hear the corresponding musical note from the onboard buzzer. Drag the volume slider to adjust loudness.

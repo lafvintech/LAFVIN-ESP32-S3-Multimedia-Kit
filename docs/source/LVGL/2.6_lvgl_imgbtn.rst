@@ -30,8 +30,6 @@ Open the example sketch from the code package:
 
 ``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/06_LVGL_IMG_BTN/06_LVGL_IMG_BTN.ino``
 
-This example uses the **onboard** buzzer. No external wiring is required.
-
 ======== ========
 Signal   ESP32-S3
 ======== ========

@@ -30,7 +30,7 @@ Open the example sketch from the code package:
 
 ``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/05_LVGL_Image/05_LVGL_Image.ino``
 
-This example uses only the display. No external wiring is required.
+
 
 Upload and Test
 ===============

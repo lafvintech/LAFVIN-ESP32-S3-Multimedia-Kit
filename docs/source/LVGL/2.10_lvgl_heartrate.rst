@@ -31,8 +31,6 @@ Open the example sketch from the code package:
 
 ``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/10_LVGL_Heartrate/10_LVGL_Heartrate.ino``
 
-This example uses the **onboard** MAX30102 sensor. No external wiring is required.
-
 ======== ========
 Signal   ESP32-S3
 ======== ========

@@ -31,8 +31,6 @@ Open the example sketch from the code package:
 
 ``LAFVIN-ESP32-S3-Multimedia-Kit-main/2.LVGL/03_LVGL_GPIO/03_LVGL_GPIO.ino``
 
-This example uses the **onboard** WS2812 LED. No external wiring is required.
-
 ======== ========
 Signal   ESP32-S3
 ======== ========
