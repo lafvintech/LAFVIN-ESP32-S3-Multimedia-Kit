@@ -78,24 +78,31 @@ Bill of Materials
      - Quantity
    * - ESP32-S3 Main Board
      - 1
+   * - ESP32-S3 Power Supply Base Board
+     - 1
    * - 2.8-inch TFT LCD with Touch Panel
      - 1
-   * - OV3660 Camera Module
+   * - OV3660 Camera
      - 1
-   * - LAFVIN Audio Decoder Amplifier Module + Speaker
+   * - OV3660 Lens Extension Board Module
      - 1
+   * - FPC Camera Extension Cable
+     - 1
+   * - LAFVIN Audio Decoder Amplifier Module
+     - 1
+   * - 8Ω 2W Cavity Speaker
+     - 2
    * - MAX30102 Heart Rate Sensor
      - 1
-   * - WS2812 RGB LED Module
+   * - Micro SD Card (1GB)
      - 1
-   * - Passive Buzzer
-     - 1
-   * - Micro SD Card (not included)
+   * - MicroUSB 2.0 Card Reader
      - 1
    * - USB Type-C Cable
      - 1
-   * - Connection Wires
-     - 1 set
-
-.. note::
-   All components except the Micro SD card are included in the kit.
+   * - Square Battery Cable
+     - 1
+   * - Phillips Screwdriver
+     - 1
+   * - Screw Kit 
+     - 1
