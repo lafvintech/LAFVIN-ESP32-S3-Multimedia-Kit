@@ -14,18 +14,16 @@ static const uint16_t screenWidth  = 320;
 static const uint16_t screenHeight = 240;
 #endif
 
-// LVGL draw buffer size (typically set to 1/10 of the screen width)
+// LVGL draw buffer size: 10 full-width rows
 #define LVGL_BUF_SIZE (screenWidth * 10)
 
 /***************************************************************************************
- * D27 - Performance Monitor Switch
+ * Performance Monitor Switch (can also be set from the build with -D)
  *   1 : measure frame rate / flush time / dirty ratio, print one line per second
  *   0 : fully compiled out (no RAM, no CPU cost)
  ***************************************************************************************/
-// Overridable from the build: add -DDISPLAY_PERF_MONITOR=0 to strip every counter
-// from a release build without touching this file.
 #ifndef DISPLAY_PERF_MONITOR
-#define DISPLAY_PERF_MONITOR    1
+#define DISPLAY_PERF_MONITOR    0
 #endif
 
 #ifndef PERF_REPORT_PERIOD_MS
@@ -41,11 +39,52 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[LVGL_BUF_SIZE];
 
 // Hardware driver instances
-TFT_eSPI tft = TFT_eSPI(screenWidth, screenHeight); /* TFT display instance */
+//
+// TFT_eSPI takes the native (rotation 0) panel size and setRotation() swaps it for
+// landscape. Passing the logical 320x240 here would clip TFT_eSPI's own drawing
+// functions (fillScreen, fillRect, ...) at x = 240.
+#define PANEL_NATIVE_WIDTH   240
+#define PANEL_NATIVE_HEIGHT  320
+
+/***************************************************************************************
+ * Deferred display-on
+ *
+ * GRAM holds random data after power-up, the backlight is always on, and without a
+ * TE line every full-screen write tears. So the panel stays off until LVGL's first
+ * frame is completely in GRAM:
+ *   - tft_init_skip_dispon() stops tft.begin() from turning the panel on (weak hook
+ *     in the locally patched TFT_eSPI); init() also sends DISPOFF as a fallback.
+ *   - my_disp_flush() sends DISPON after the last band of the first frame.
+ * With a stock TFT_eSPI the hook is never called and random GRAM is visible for
+ * ~120 ms inside begin(); the first frame is still hidden.
+ *
+ * Requirement: lv_scr_load() the first screen before the first lv_task_handler(),
+ * otherwise the panel turns on showing the empty default screen.
+ * Set DISPLAY_DEFER_ON to 0 to restore the stock behaviour.
+ ***************************************************************************************/
+#ifndef DISPLAY_DEFER_ON
+#define DISPLAY_DEFER_ON        1
+#endif
+
+#if DISPLAY_DEFER_ON
+static bool s_panel_on = false;
+#endif
+
+/**
+ * @brief Overrides TFT_eSPI's weak display-on hook (patched library only).
+ * @return true to skip DISPON inside tft.begin(); my_disp_flush() turns the
+ *         panel on after the first complete frame instead.
+ */
+bool tft_init_skip_dispon( void )
+{
+    return DISPLAY_DEFER_ON;
+}
+
+TFT_eSPI tft = TFT_eSPI(PANEL_NATIVE_WIDTH, PANEL_NATIVE_HEIGHT); /* TFT display instance */
 FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN); /* Capacitive touch panel instance */
 
 /***************************************************************************************
- * D27 - Performance Counters
+ * Performance Counters
  *
  *   frame : CPU time of one refresh cycle (layout + render + SPI flush), reported
  *           by LVGL's monitor_cb. Compare it with (1000 / fps): if frame is much
@@ -56,14 +95,15 @@ FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN); /* Capacitive touch pan
  *           and not the SPI bus.
  *   task  : how long lv_task_handler() blocks the main loop. If task approaches the
  *           loop period, the UI is CPU-bound and the main loop is starving.
- *   touch : time spent inside ft6336u.scan() (I2C). It runs inside lv_task_handler()
- *           but outside the refresh cycle, so it inflates task without inflating frame.
+ *   touch : time spent reading the touch controller over I2C. It runs inside
+ *           lv_task_handler() but outside the refresh cycle, so it inflates task
+ *           without inflating frame.
  *   loop  : the real main-loop period (span / number of routine() calls), includes
  *           the delay(5) in loop().
  *   calls/frame : how many main-loop iterations produce one frame. Near 1.0 means the
  *           loop is frame-bound; well above 1.0 means most iterations have nothing to
  *           draw and LVGL is idling.
- *   dirty : redrawn pixels / full screen pixels. A piano key press should only dirty
+ *   dirty : redrawn pixels / full screen pixels. A button press should only dirty
  *           a few percent. A value near 100% means something redraws the whole screen
  *           every frame, and that is usually the real problem.
  ***************************************************************************************/
@@ -82,7 +122,7 @@ typedef struct
     uint32_t task_us_sum;    // accumulated lv_task_handler() time
     uint32_t task_us_max;
     uint32_t task_calls;
-    uint32_t touch_us_sum;   // accumulated ft6336u.scan() time (I2C)
+    uint32_t touch_us_sum;   // accumulated touch read time (I2C)
     uint32_t touch_us_max;
     uint32_t touch_calls;
 } PerfStats;
@@ -126,7 +166,7 @@ static void perf_report( void )
 }
 
 /**
- * @brief LVGL refresh monitor callback (D27)
+ * @brief LVGL refresh monitor callback
  * Invoked by the LVGL refresh timer once per frame that actually flushed
  * something. `time_ms` covers layout + render + flush, `px` is the number of
  * pixels sent to the panel in that cycle.
@@ -153,15 +193,9 @@ static void my_monitor_cb( lv_disp_drv_t * disp_drv, uint32_t time_ms, uint32_t 
 /***************************************************************************************
  * Fast touch read
  *
- * The stock FT6336U library is unusable for a UI. Its readByte() contains a hard
- * `delay(10)` after every single-byte transaction, and scan() performs 1 read when
- * idle, 4 with one finger down and 7 with two fingers down. That is 10 / 40 / 70 ms
- * of pure busy-wait per scan; it measured as touch=10.46ms idle, 22ms while touching,
- * 61ms peak, and consumed ~34% of wall-clock time with nothing but an idle screen.
- *
- * Everything we need lives in 5 consecutive registers (0x02..0x06), so one register
- * pointer write plus one 5-byte burst read replaces the whole thing. At 400 kHz that
- * is roughly 0.2 ms instead of 10..70 ms.
+ * The FT6336U library's readByte() waits delay(10) after every byte and scan() does
+ * 1 to 7 reads, i.e. 10-70 ms of busy-wait per poll. Everything needed lives in
+ * registers 0x02..0x06, so one 5-byte burst read at 400 kHz (~0.2 ms) replaces it.
  *
  * Set USE_STOCK_TOUCH_SCAN to 1 to fall back to the library implementation.
  ***************************************************************************************/
@@ -248,6 +282,16 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     tft.pushColors((uint16_t*)&color_p->full, w * h, true );
 
     tft.endWrite();
+
+#if DISPLAY_DEFER_ON
+    // The last band of the first frame is in GRAM: the whole screen now holds a
+    // valid image, so it is safe to show it.
+    if( !s_panel_on && lv_disp_flush_is_last( disp ) )
+    {
+        tft.writecommand( (uint8_t)TFT_DISPON );
+        s_panel_on = true;
+    }
+#endif
 
 #if DISPLAY_PERF_MONITOR
     uint32_t t_cost = micros() - t_begin;
@@ -352,8 +396,7 @@ void Display::init(void)
     // 1. Initialize the touch controller.
     ft6336u.begin();
 
-    // Move the bus off the 100 kHz default; the burst reader in fast_touch_read()
-    // then costs ~0.2 ms instead of the 10..70 ms the library burned in delay().
+    // 400 kHz for fast_touch_read(); the library leaves the bus at 100 kHz.
     Wire.setClock( 400000 );
 
     // 2. Register the LVGL log callback, if enabled.
@@ -366,8 +409,14 @@ void Display::init(void)
 
     // 4. Initialize the TFT display.
     tft.begin();
+#if DISPLAY_DEFER_ON
+    // Keep the panel dark until the first LVGL frame is complete (see my_disp_flush).
+    // Only matters with a stock TFT_eSPI; the patched one never turned it on.
+    tft.writecommand( (uint8_t)TFT_DISPOFF );
+#endif
     tft.setRotation( TFT_DIRECTION ); /* Set the display orientation */
     tft.invertDisplay(0); /* Invert colors if required by the panel characteristics, often needed for IPS panels */
+
     // 5. Initialize the display buffer.
     lv_disp_draw_buf_init( &draw_buf, buf, NULL, LVGL_BUF_SIZE );
 
@@ -380,7 +429,7 @@ void Display::init(void)
     disp_drv.draw_buf = &draw_buf;     // Set the draw buffer
 
 #if DISPLAY_PERF_MONITOR
-    disp_drv.monitor_cb = my_monitor_cb; // D27: collect per-frame statistics
+    disp_drv.monitor_cb = my_monitor_cb; // collect per-frame statistics
     s_perf = PerfStats();
     s_perf.window_start = millis();
 #endif
