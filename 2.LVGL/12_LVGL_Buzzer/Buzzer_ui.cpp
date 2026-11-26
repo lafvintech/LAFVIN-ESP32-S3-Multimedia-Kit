@@ -131,7 +131,7 @@ void create_styles(void) {
   lv_style_set_bg_opa(&s_black_key_style, LV_OPA_COVER);
   lv_style_set_border_width(&s_black_key_style, 0);
   lv_style_set_radius(&s_black_key_style, 0);
-  lv_style_set_shadow_width(&s_black_key_style, 10);
+  lv_style_set_shadow_width(&s_black_key_style, 0);
   lv_style_set_shadow_color(&s_black_key_style, lv_color_hex(0x6B7280));
   lv_style_set_shadow_ofs_y(&s_black_key_style, 2);
 
@@ -209,9 +209,9 @@ void setup_volume(BuzzerUI *ui) {
   lv_obj_set_style_bg_color(ui->volume_slider, lv_color_white(), LV_PART_KNOB);
   lv_obj_set_style_border_color(ui->volume_slider, lv_palette_main(LV_PALETTE_BLUE), LV_PART_KNOB);
   lv_obj_set_style_border_width(ui->volume_slider, 2, LV_PART_KNOB);
-  lv_obj_set_style_pad_all(ui->volume_slider, 6, LV_PART_KNOB);  
+  lv_obj_set_style_pad_all(ui->volume_slider, 6, LV_PART_KNOB);
   lv_obj_set_style_radius(ui->volume_slider, LV_RADIUS_CIRCLE, LV_PART_KNOB);
-  
+
   lv_obj_add_flag(ui->volume_slider, LV_OBJ_FLAG_ADV_HITTEST);
   lv_obj_add_event_cb(ui->volume_slider, volume_slider_event_handler, LV_EVENT_VALUE_CHANGED, nullptr);
 }

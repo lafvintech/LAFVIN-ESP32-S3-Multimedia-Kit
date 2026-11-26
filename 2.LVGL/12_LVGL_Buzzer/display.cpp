@@ -1,6 +1,7 @@
 #include "display.h"
 #include "TFT_eSPI.h"
 #include "FT6336U.h"
+#include <Wire.h>
 
 /***************************************************************************************
  * Screen Configuration
@@ -17,6 +18,21 @@ static const uint16_t screenHeight = 240;
 #define LVGL_BUF_SIZE (screenWidth * 10)
 
 /***************************************************************************************
+ * D27 - Performance Monitor Switch
+ *   1 : measure frame rate / flush time / dirty ratio, print one line per second
+ *   0 : fully compiled out (no RAM, no CPU cost)
+ ***************************************************************************************/
+// Overridable from the build: add -DDISPLAY_PERF_MONITOR=0 to strip every counter
+// from a release build without touching this file.
+#ifndef DISPLAY_PERF_MONITOR
+#define DISPLAY_PERF_MONITOR    1
+#endif
+
+#ifndef PERF_REPORT_PERIOD_MS
+#define PERF_REPORT_PERIOD_MS   1000
+#endif
+
+/***************************************************************************************
  * Global Variables
  ***************************************************************************************/
 // LVGL draw buffer descriptor
@@ -29,6 +45,168 @@ TFT_eSPI tft = TFT_eSPI(screenWidth, screenHeight); /* TFT display instance */
 FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN); /* Capacitive touch panel instance */
 
 /***************************************************************************************
+ * D27 - Performance Counters
+ *
+ *   frame : CPU time of one refresh cycle (layout + render + SPI flush), reported
+ *           by LVGL's monitor_cb. Compare it with (1000 / fps): if frame is much
+ *           smaller than the frame interval, the CPU has headroom and the limiter
+ *           is LV_DISP_DEF_REFR_PERIOD, not compute.
+ *   flush : pure SPI transfer time inside my_disp_flush(). If frame >> flush, the
+ *           bottleneck is rendering (too many redraws / shadows / rounded corners)
+ *           and not the SPI bus.
+ *   task  : how long lv_task_handler() blocks the main loop. If task approaches the
+ *           loop period, the UI is CPU-bound and the main loop is starving.
+ *   touch : time spent inside ft6336u.scan() (I2C). It runs inside lv_task_handler()
+ *           but outside the refresh cycle, so it inflates task without inflating frame.
+ *   loop  : the real main-loop period (span / number of routine() calls), includes
+ *           the delay(5) in loop().
+ *   calls/frame : how many main-loop iterations produce one frame. Near 1.0 means the
+ *           loop is frame-bound; well above 1.0 means most iterations have nothing to
+ *           draw and LVGL is idling.
+ *   dirty : redrawn pixels / full screen pixels. A piano key press should only dirty
+ *           a few percent. A value near 100% means something redraws the whole screen
+ *           every frame, and that is usually the real problem.
+ ***************************************************************************************/
+#if DISPLAY_PERF_MONITOR
+
+typedef struct
+{
+    uint32_t window_start;   // start of the current measurement window (millis)
+    uint32_t frames;         // monitor_cb calls == real refresh cycles
+    uint32_t px_total;       // pixels flushed in this window
+    uint32_t frame_ms_sum;   // accumulated whole-cycle time
+    uint32_t frame_ms_max;
+    uint32_t flush_us_sum;   // accumulated SPI transfer time
+    uint32_t flush_us_max;
+    uint32_t flush_calls;
+    uint32_t task_us_sum;    // accumulated lv_task_handler() time
+    uint32_t task_us_max;
+    uint32_t task_calls;
+    uint32_t touch_us_sum;   // accumulated ft6336u.scan() time (I2C)
+    uint32_t touch_us_max;
+    uint32_t touch_calls;
+} PerfStats;
+
+static PerfStats s_perf;
+
+static void perf_report( void )
+{
+    uint32_t now  = millis();
+    uint32_t span = now - s_perf.window_start;
+
+    if( span < PERF_REPORT_PERIOD_MS )
+    {
+        return;
+    }
+
+    float span_s    = span / 1000.0f;
+    float loop_ms   = s_perf.task_calls  ? (float)span / s_perf.task_calls : 0.0f;
+    float fps       = s_perf.frames / span_s;
+    float frame_ms  = s_perf.frames      ? (float)s_perf.frame_ms_sum / s_perf.frames : 0.0f;
+    float flush_ms  = s_perf.flush_calls ? (s_perf.flush_us_sum / 1000.0f) / s_perf.flush_calls : 0.0f;
+    float task_ms   = s_perf.task_calls  ? (s_perf.task_us_sum  / 1000.0f) / s_perf.task_calls  : 0.0f;
+    float touch_ms  = s_perf.touch_calls ? (s_perf.touch_us_sum / 1000.0f) / s_perf.touch_calls : 0.0f;
+    float cpf       = s_perf.frames      ? (float)s_perf.task_calls / s_perf.frames : 0.0f;
+    float px_s      = s_perf.px_total / span_s;
+    float kbps      = px_s * 2.0f / 1024.0f;
+    float screen_px = (float)screenWidth * (float)screenHeight;
+    float dirty     = ( fps > 0.01f ) ? ( px_s / ( fps * screen_px ) ) * 100.0f : 0.0f;
+
+    Serial.printf(
+        "[perf] fps=%5.1f loop=%5.1fms calls/frame=%4.1f | task=%5.1fms touch=%4.2fms(max %4.2f) "
+        "| frame=%5.1fms(max %2ums) flush=%4.2fms | dirty=%5.1f%% %6.0fpx/s ~%6.1fKB/s\n",
+        fps,
+        loop_ms, cpf,
+        task_ms, touch_ms, s_perf.touch_us_max / 1000.0f,
+        frame_ms, s_perf.frame_ms_max, flush_ms,
+        dirty, px_s, kbps );
+
+    s_perf = PerfStats();
+    s_perf.window_start = now;
+}
+
+/**
+ * @brief LVGL refresh monitor callback (D27)
+ * Invoked by the LVGL refresh timer once per frame that actually flushed
+ * something. `time_ms` covers layout + render + flush, `px` is the number of
+ * pixels sent to the panel in that cycle.
+ *
+ * Deliberately does NOT print here: Serial output blocks for milliseconds and
+ * would distort exactly the numbers we are trying to measure.
+ */
+static void my_monitor_cb( lv_disp_drv_t * disp_drv, uint32_t time_ms, uint32_t px )
+{
+    (void)disp_drv;
+
+    s_perf.frames++;
+    s_perf.px_total     += px;
+    s_perf.frame_ms_sum += time_ms;
+
+    if( time_ms > s_perf.frame_ms_max )
+    {
+        s_perf.frame_ms_max = time_ms;
+    }
+}
+
+#endif /* DISPLAY_PERF_MONITOR */
+
+/***************************************************************************************
+ * Fast touch read
+ *
+ * The stock FT6336U library is unusable for a UI. Its readByte() contains a hard
+ * `delay(10)` after every single-byte transaction, and scan() performs 1 read when
+ * idle, 4 with one finger down and 7 with two fingers down. That is 10 / 40 / 70 ms
+ * of pure busy-wait per scan; it measured as touch=10.46ms idle, 22ms while touching,
+ * 61ms peak, and consumed ~34% of wall-clock time with nothing but an idle screen.
+ *
+ * Everything we need lives in 5 consecutive registers (0x02..0x06), so one register
+ * pointer write plus one 5-byte burst read replaces the whole thing. At 400 kHz that
+ * is roughly 0.2 ms instead of 10..70 ms.
+ *
+ * Set USE_STOCK_TOUCH_SCAN to 1 to fall back to the library implementation.
+ ***************************************************************************************/
+#define USE_STOCK_TOUCH_SCAN   0
+
+#define FT6336U_I2C_ADDR       0x38
+#define FT6336U_REG_TD_STATUS  0x02
+
+/**
+ * @brief Burst-read touch status and touch point 1 coordinates.
+ *
+ * @param count Receives TD_STATUS low nibble (number of touch points).
+ * @param x     Receives touch point 1 X in panel coordinates.
+ * @param y     Receives touch point 1 Y in panel coordinates.
+ * @return true on success, false if the I2C transfer failed.
+ */
+static bool fast_touch_read( uint8_t * count, int * x, int * y )
+{
+    Wire.beginTransmission( FT6336U_I2C_ADDR );
+    Wire.write( FT6336U_REG_TD_STATUS );
+
+    if( Wire.endTransmission( false ) != 0 )   // repeated start, no STOP
+    {
+        return false;
+    }
+
+    if( Wire.requestFrom( FT6336U_I2C_ADDR, (size_t)5 ) != 5 )
+    {
+        return false;
+    }
+
+    uint8_t td = Wire.read();   // 0x02 TD_STATUS
+    uint8_t xh = Wire.read();   // 0x03 TOUCH1_XH : event[7:6] id[5:4] x[11:8][3:0]
+    uint8_t xl = Wire.read();   // 0x04 TOUCH1_XL : x[7:0]
+    uint8_t yh = Wire.read();   // 0x05 TOUCH1_YH : event[7:6] id[5:4] y[11:8][3:0]
+    uint8_t yl = Wire.read();   // 0x06 TOUCH1_YL : y[7:0]
+
+    *count = td & 0x0F;
+    *x     = ( ( xh & 0x0F ) << 8 ) | xl;
+    *y     = ( ( yh & 0x0F ) << 8 ) | yl;
+
+    return true;
+}
+
+/***************************************************************************************
  * Callback Functions
  ***************************************************************************************/
 
@@ -39,7 +217,7 @@ FT6336U ft6336u(I2C_SDA, I2C_SCL, RST_N_PIN, INT_N_PIN); /* Capacitive touch pan
  */
 void my_print(const char * buf)
 {
-    Serial.printf(buf);
+    Serial.print( buf );
     Serial.flush();
 }
 #endif
@@ -58,6 +236,10 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     uint32_t w = ( area->x2 - area->x1 + 1 );
     uint32_t h = ( area->y2 - area->y1 + 1 );
 
+#if DISPLAY_PERF_MONITOR
+    uint32_t t_begin = micros();
+#endif
+
     // Use startWrite/endWrite to lock the SPI bus for better efficiency.
     tft.startWrite();
 
@@ -66,6 +248,17 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     tft.pushColors((uint16_t*)&color_p->full, w * h, true );
 
     tft.endWrite();
+
+#if DISPLAY_PERF_MONITOR
+    uint32_t t_cost = micros() - t_begin;
+    s_perf.flush_us_sum += t_cost;
+    s_perf.flush_calls++;
+
+    if( t_cost > s_perf.flush_us_max )
+    {
+        s_perf.flush_us_max = t_cost;
+    }
+#endif
 
     // Notify LVGL that flushing is complete.
     lv_disp_flush_ready( disp );
@@ -80,19 +273,46 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
  */
 void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
 {
-    // Read the touch panel status.
+    (void)indev_driver;
+
+#if DISPLAY_PERF_MONITOR
+    uint32_t t_begin = micros();
+#endif
+
+#if USE_STOCK_TOUCH_SCAN
     FT6336U_TouchPointType tp = ft6336u.scan();
+    uint8_t touch_count = tp.touch_count;
+    int x = tp.tp[0].x;
+    int y = tp.tp[0].y;
+#else
+    uint8_t touch_count = 0;
+    int x = 0;
+    int y = 0;
+
+    if( !fast_touch_read( &touch_count, &x, &y ) )
+    {
+        touch_count = 0; // I2C error, treat as released
+    }
+#endif
+
+#if DISPLAY_PERF_MONITOR
+    uint32_t t_cost = micros() - t_begin;
+    s_perf.touch_us_sum += t_cost;
+    s_perf.touch_calls++;
+
+    if( t_cost > s_perf.touch_us_max )
+    {
+        s_perf.touch_us_max = t_cost;
+    }
+#endif
 
     // No touch point detected.
-    if( tp.touch_count == 0 )
+    if( touch_count == 0 )
     {
         data->state = LV_INDEV_STATE_REL; // Released state
     }
     else
     {
-        // Get the coordinates of the first touch point.
-        int x = tp.tp[0].x;
-        int y = tp.tp[0].y;
 
 #if TFT_DIRECTION == 1
         int rotated_x = y;
@@ -132,6 +352,10 @@ void Display::init(void)
     // 1. Initialize the touch controller.
     ft6336u.begin();
 
+    // Move the bus off the 100 kHz default; the burst reader in fast_touch_read()
+    // then costs ~0.2 ms instead of the 10..70 ms the library burned in delay().
+    Wire.setClock( 400000 );
+
     // 2. Register the LVGL log callback, if enabled.
 #if LV_USE_LOG != 0
     lv_log_register_print_cb( my_print );
@@ -144,7 +368,6 @@ void Display::init(void)
     tft.begin();
     tft.setRotation( TFT_DIRECTION ); /* Set the display orientation */
     tft.invertDisplay(0); /* Invert colors if required by the panel characteristics, often needed for IPS panels */
-
     // 5. Initialize the display buffer.
     lv_disp_draw_buf_init( &draw_buf, buf, NULL, LVGL_BUF_SIZE );
 
@@ -155,6 +378,13 @@ void Display::init(void)
     disp_drv.ver_res = screenHeight;
     disp_drv.flush_cb = my_disp_flush; // Set the flush callback
     disp_drv.draw_buf = &draw_buf;     // Set the draw buffer
+
+#if DISPLAY_PERF_MONITOR
+    disp_drv.monitor_cb = my_monitor_cb; // D27: collect per-frame statistics
+    s_perf = PerfStats();
+    s_perf.window_start = millis();
+#endif
+
     lv_disp_drv_register( &disp_drv );
 
     // 7. Initialize and register the input device driver (touch panel).
@@ -167,6 +397,23 @@ void Display::init(void)
 
 void Display::routine(void)
 {
+#if DISPLAY_PERF_MONITOR
+    uint32_t t_begin = micros();
+#endif
+
     // Handle LVGL internal timer tasks, animations, and events.
     lv_task_handler();
+
+#if DISPLAY_PERF_MONITOR
+    uint32_t t_cost = micros() - t_begin;
+    s_perf.task_us_sum += t_cost;
+    s_perf.task_calls++;
+
+    if( t_cost > s_perf.task_us_max )
+    {
+        s_perf.task_us_max = t_cost;
+    }
+
+    perf_report();
+#endif
 }
