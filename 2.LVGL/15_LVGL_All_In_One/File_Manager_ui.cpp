@@ -39,6 +39,17 @@ uint32_t s_last_wifi_poll_ms = 0;
 
 File s_upload_file;
 String s_upload_directory = "/";
+String s_upload_path;
+String s_upload_temp_path;
+String s_upload_error;
+size_t s_upload_written = 0;
+size_t s_upload_expected = 0;
+bool s_upload_has_expected = false;
+bool s_upload_in_progress = false;
+bool s_upload_ok = false;
+bool s_upload_result_ready = false;
+bool s_upload_owns_pause = false;
+bool s_file_list_dirty = false;
 String s_last_remote_message;
 
 static lv_style_t s_screen_style;
@@ -101,6 +112,8 @@ static void handle_mkdir(void);
 static void handle_upload_finish(void);
 static void handle_upload_stream(void);
 static void handle_not_found(void);
+static void finish_upload(bool success, const char *message);
+static bool commit_upload(void);
 
 static void exit_event_handler(lv_event_t *e);
 static void refresh_event_handler(lv_event_t *e);
@@ -782,10 +795,12 @@ void handle_root_page(void) {
   html += "<input type='text' name='name' placeholder='New folder name'>";
   html += "<button type='submit'>Create Folder</button></form>";
 
-  html += "<form action='/upload' method='post' enctype='multipart/form-data'>";
-  html += "<input type='hidden' name='dir' value='" + html_escape(dir_path) + "'>";
-  html += "<input type='file' name='upload'>";
+  // Put the directory in the query: POST fields are unavailable at UPLOAD_FILE_START.
+  html += "<form id='upload-form' action='/upload?dir=" + url_encode(dir_path) + "' method='post' enctype='multipart/form-data'>";
+  html += "<input id='upload-file' type='file' name='upload' required>";
   html += "<button type='submit'>Upload File</button></form>";
+  html += "<div id='transfer-status' role='status' aria-live='polite' hidden>";
+  html += "<progress id='transfer-progress' max='100' value='0'></progress> <span id='transfer-text'></span></div>";
   html += "</div>";
 
   html += "<table><thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Action</th></tr></thead><tbody>";
@@ -815,7 +830,7 @@ void handle_root_page(void) {
     }
     html += "</td><td>";
     if (!file.isDirectory()) {
-      html += "<a href='/download?path=" + url_encode(full_path) + "'>Download</a> ";
+      html += "<a data-download='1' href='/download?path=" + url_encode(full_path) + "'>Download</a> ";
     }
     html += "<a href='/delete?path=" + url_encode(full_path) + "&dir=" + url_encode(dir_path) + "'>Delete</a>";
     html += "</td></tr>";
@@ -824,7 +839,109 @@ void handle_root_page(void) {
     file = dir.openNextFile();
   }
 
-  html += "</tbody></table></div></body></html>";
+  html += R"HTML(</tbody></table></div>
+<script>
+(() => {
+  const form = document.getElementById('upload-form');
+  const input = document.getElementById('upload-file');
+  const status = document.getElementById('transfer-status');
+  const progress = document.getElementById('transfer-progress');
+  const label = document.getElementById('transfer-text');
+  let busy = false;
+  function lock(value) {
+    busy = value;
+    document.querySelectorAll('input,button').forEach(el => el.disabled = value);
+  }
+  document.addEventListener('click', event => {
+    if (busy && event.target.closest('a')) {
+      event.preventDefault();
+      return;
+    }
+    const link = event.target.closest('a[data-download]');
+    if (!link) return;
+    event.preventDefault();
+    const filename = new URL(link.href).searchParams.get('path').split('/').pop();
+    const xhr = new XMLHttpRequest();
+    function fail(message) {
+      lock(false);
+      label.textContent = message;
+    }
+    xhr.open('GET', link.href);
+    xhr.responseType = 'blob';
+    xhr.onprogress = event => {
+      if (!event.lengthComputable || event.total <= 0) return;
+      const percent = Math.min(99, Math.floor(event.loaded * 100 / event.total));
+      progress.value = percent;
+      label.textContent = 'Downloading ' + filename + ': ' + percent + '%';
+    };
+    xhr.onload = async () => {
+      if (xhr.status !== 200) { fail(await xhr.response.text()); return; }
+      const url = URL.createObjectURL(xhr.response);
+      const save = document.createElement('a');
+      save.href = url;
+      save.download = filename;
+      document.body.appendChild(save);
+      lock(false);
+      save.click();
+      save.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      progress.value = 100;
+      label.textContent = 'Download complete: 100%';
+    };
+    xhr.onerror = () => fail('Download interrupted. Check WiFi and retry.');
+    xhr.onabort = () => fail('Download cancelled.');
+    status.hidden = false;
+    progress.value = 0;
+    label.textContent = 'Downloading ' + filename + ': 0%';
+    lock(true);
+    xhr.send();
+  });
+  window.addEventListener('beforeunload', event => {
+    if (busy) { event.preventDefault(); event.returnValue = ''; }
+  });
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    if (busy || !input.files.length) return;
+    const file = input.files[0];
+    const data = new FormData();
+    data.append('upload', file, file.name);
+    const url = new URL(form.action);
+    url.searchParams.set('size', file.size);
+    url.searchParams.set('ajax', '1');
+    const xhr = new XMLHttpRequest();
+    let finished = false;
+    function fail(message) {
+      if (finished) return;
+      finished = true;
+      lock(false);
+      label.textContent = message;
+    }
+    xhr.open('POST', url);
+    xhr.upload.onprogress = event => {
+      if (!event.lengthComputable || event.total <= 0) return;
+      const percent = Math.min(99, Math.floor(event.loaded * 100 / event.total));
+      progress.value = percent;
+      label.textContent = 'Uploading ' + file.name + ': ' + percent + '%';
+    };
+    xhr.upload.onload = () => label.textContent = 'Saving file on device...';
+    xhr.onload = () => {
+      if (xhr.status !== 200) { fail(xhr.responseText || 'Upload failed.'); return; }
+      finished = true;
+      progress.value = 100;
+      label.textContent = 'Upload complete: 100%';
+      lock(false);
+      setTimeout(() => window.location.reload(), 600);
+    };
+    xhr.onerror = () => fail('Connection lost. Check WiFi and retry.');
+    xhr.onabort = () => fail('Upload cancelled.');
+    status.hidden = false;
+    progress.value = 0;
+    label.textContent = 'Uploading ' + file.name + ': 0%';
+    lock(true);
+    xhr.send(data);
+  });
+})();
+</script></body></html>)HTML";
   dir.close();
 
   s_server.send(200, "text/html", html);
@@ -846,11 +963,50 @@ void handle_download(void) {
     return;
   }
 
+  const size_t total = file.size();
+  if (!all_in_one_file_transfer_begin(basename_from_path(path).c_str(), false)) {
+    file.close();
+    s_server.send(503, "text/plain", "Device is busy. Please retry.");
+    return;
+  }
   s_server.sendHeader(
     "Content-Disposition",
     "attachment; filename=\"" + basename_from_path(path) + "\"");
-  s_server.streamFile(file, "application/octet-stream");
+  s_server.setContentLength(total);
+  s_server.send(200, "application/octet-stream", "");
+  auto client = s_server.client();
+  size_t sent = 0;
+  uint8_t buffer[1024];
+  all_in_one_file_transfer_update(0, total);
+  while (sent < total && client.connected() && WiFi.status() == WL_CONNECTED) {
+    const size_t count = file.read(buffer, min(sizeof(buffer), total - sent));
+    if (count == 0) {
+      break;
+    }
+    size_t offset = 0;
+    while (offset < count && client.connected()) {
+      const size_t written = client.write(buffer + offset, count - offset);
+      if (written == 0) {
+        break;
+      }
+      offset += written;
+      sent += written;
+      all_in_one_file_transfer_update(sent, total);
+      delay(1);
+    }
+    if (offset != count) {
+      break;
+    }
+  }
   file.close();
+  if (sent == total) {
+    all_in_one_file_transfer_update(sent, total, true);
+    s_last_remote_message = "Download finished.";
+  } else {
+    s_last_remote_message = "Download interrupted.";
+    client.stop();
+  }
+  all_in_one_file_transfer_end();
 }
 
 void handle_delete(void) {
@@ -871,8 +1027,7 @@ void handle_delete(void) {
   }
 
   s_last_remote_message = deleted ? String("Deleted remotely: ") + path : String("Delete failed for ") + path;
-  // Note: do not touch LVGL objects from the HTTP task; the on-screen list will
-  // refresh the next time the user interacts with it.
+  s_file_list_dirty = deleted;
   redirect_to_directory(dir);
 }
 
@@ -890,20 +1045,77 @@ void handle_mkdir(void) {
     ok = SD_MMC.mkdir(mounted_path(new_dir).c_str());
   }
   s_last_remote_message = ok ? String("Created folder remotely: ") + new_dir : String("Create folder failed: ") + new_dir;
-  // Avoid touching LVGL from the HTTP task.
+  s_file_list_dirty = ok;
   redirect_to_directory(dir);
 }
 
+// These handlers run synchronously inside handleClient() on the LVGL main task.
+// A temporary file prevents interrupted uploads from destroying an existing file.
+void finish_upload(bool success, const char *message) {
+  if (s_upload_file) {
+    s_upload_file.close();
+  }
+  if (!success && s_upload_temp_path.length() > 0) {
+    remove_file_path(s_upload_temp_path);
+  }
+  s_upload_ok = success;
+  s_upload_result_ready = true;
+  s_upload_in_progress = false;
+  s_last_remote_message = message;
+  if (!success) {
+    s_upload_error = message;
+  } else {
+    s_file_list_dirty = true;
+    all_in_one_file_transfer_update(s_upload_written, s_upload_written, true);
+  }
+  if (s_upload_owns_pause) {
+    all_in_one_file_transfer_end();
+    s_upload_owns_pause = false;
+  }
+}
+
+bool commit_upload(void) {
+  const String backup = s_upload_temp_path + ".bak";
+  const bool replacing = path_exists(s_upload_path);
+  if (replacing && !SD_MMC.rename(s_upload_path.c_str(), backup.c_str())) {
+    return false;
+  }
+  if (!SD_MMC.rename(s_upload_temp_path.c_str(), s_upload_path.c_str())) {
+    if (replacing) {
+      SD_MMC.rename(backup.c_str(), s_upload_path.c_str());
+    }
+    return false;
+  }
+  if (replacing) {
+    remove_file_path(backup);
+  }
+  return true;
+}
+
 void handle_upload_finish(void) {
-  // Avoid touching LVGL from the HTTP task.
-  redirect_to_directory(s_upload_directory);
+  if (!s_upload_result_ready) {
+    s_server.send(400, "text/plain", "No file was uploaded.");
+  } else if (!s_upload_ok) {
+    s_server.send(500, "text/plain", s_upload_error);
+  } else if (s_server.hasArg("ajax")) {
+    s_server.send(200, "text/plain", "Upload complete.");
+  } else {
+    redirect_to_directory(s_upload_directory);
+  }
+  s_upload_result_ready = false;
 }
 
 void handle_upload_stream(void) {
   HTTPUpload &upload = s_server.upload();
-
   if (upload.status == UPLOAD_FILE_START) {
-    s_upload_directory = s_server.hasArg("dir") ? normalize_path(url_decode(s_server.arg("dir")), true) : "/";
+    s_upload_ok = false;
+    s_upload_result_ready = false;
+    s_upload_in_progress = true;
+    s_upload_written = 0;
+    s_upload_error = "";
+    s_upload_temp_path = "";
+    // WebServer already URL-decodes query arguments.
+    s_upload_directory = s_server.hasArg("dir") ? normalize_path(s_server.arg("dir"), true) : "/";
     String filename = upload.filename;
     const int slash = filename.lastIndexOf('/');
     const int backslash = filename.lastIndexOf('\\');
@@ -911,27 +1123,84 @@ void handle_upload_stream(void) {
     if (separator >= 0) {
       filename = filename.substring(separator + 1);
     }
-
-    const String file_path = join_path(s_upload_directory, filename);
-    if (path_exists(file_path)) {
-      remove_file_path(file_path);
+    s_upload_path = join_path(s_upload_directory, filename);
+    s_upload_expected = 0;
+    s_upload_has_expected = s_server.hasArg("size");
+    if (s_upload_has_expected) {
+      const String size_arg = s_server.arg("size");
+      char *end = nullptr;
+      const unsigned long long expected = strtoull(size_arg.c_str(), &end, 10);
+      if (size_arg.isEmpty() || *end != '\0' || expected > UINT32_MAX) {
+        s_upload_error = "Invalid upload size.";
+      } else {
+        s_upload_expected = static_cast<size_t>(expected);
+      }
     }
-    s_upload_file = open_path_for_write(file_path);
-    s_last_remote_message = String("Uploading to ") + file_path;
+    if (filename.isEmpty() || filename.indexOf("..") >= 0 || filename == ".") {
+      s_upload_error = "Invalid filename.";
+    }
+    File directory = open_path_for_read(s_upload_directory);
+    if (!directory || !directory.isDirectory()) {
+      s_upload_error = "Upload directory not found.";
+    }
+    directory.close();
+    File existing = open_path_for_read(s_upload_path);
+    if (existing && existing.isDirectory()) {
+      s_upload_error = "A folder already has that name.";
+    }
+    existing.close();
+    if (s_upload_error.isEmpty()) {
+      s_upload_owns_pause = all_in_one_file_transfer_begin(filename.c_str(), true);
+      if (!s_upload_owns_pause) {
+        s_upload_error = "Device is busy. Please retry.";
+      }
+    }
+    if (s_upload_error.isEmpty()) {
+      unsigned counter = 0;
+      do {
+        s_upload_temp_path = join_path(s_upload_directory,
+          String(".upload-") + String(millis()) + "-" + String(counter++) + ".tmp");
+      } while (path_exists(s_upload_temp_path) || path_exists(s_upload_temp_path + ".bak"));
+      s_upload_file = open_path_for_write(s_upload_temp_path);
+      if (!s_upload_file) {
+        s_upload_error = "Unable to create file on SD card.";
+      }
+    }
+    all_in_one_file_transfer_update(0, s_upload_expected);
   } else if (upload.status == UPLOAD_FILE_WRITE) {
-    if (s_upload_file) {
-      s_upload_file.write(upload.buf, upload.currentSize);
+    if (s_upload_in_progress && s_upload_error.isEmpty() && s_upload_file) {
+      const size_t written = s_upload_file.write(upload.buf, upload.currentSize);
+      s_upload_written += written;
+      if (written != upload.currentSize) {
+        s_upload_error = "SD card write failed (card full or unavailable).";
+      } else if (s_upload_has_expected && s_upload_written > s_upload_expected) {
+        s_upload_error = "Upload size mismatch.";
+      }
+      all_in_one_file_transfer_update(s_upload_written, s_upload_expected);
     }
   } else if (upload.status == UPLOAD_FILE_END) {
+    if (!s_upload_in_progress) {
+      return;
+    }
     if (s_upload_file) {
       s_upload_file.close();
     }
-    s_last_remote_message = "Upload finished.";
-  } else if (upload.status == UPLOAD_FILE_ABORTED) {
-    if (s_upload_file) {
-      s_upload_file.close();
+    if (s_upload_error.isEmpty() &&
+        (s_upload_written != upload.totalSize ||
+         (s_upload_has_expected && s_upload_written != s_upload_expected))) {
+      s_upload_error = "Upload incomplete: size mismatch.";
     }
-    s_last_remote_message = "Upload aborted.";
+    if (s_upload_error.isEmpty() && !commit_upload()) {
+      s_upload_error = "Unable to save uploaded file.";
+    }
+    if (s_upload_error.isEmpty()) {
+      finish_upload(true, "Upload finished.");
+    } else {
+      const String error = s_upload_error;
+      finish_upload(false, error.c_str());
+    }
+  } else if (upload.status == UPLOAD_FILE_ABORTED && s_upload_in_progress) {
+    finish_upload(false, "Upload interrupted. Please retry.");
   }
 }
 
@@ -1038,5 +1307,20 @@ void file_manager_ui_background_loop(void) {
   ensure_server_state();
   if (s_server_started) {
     s_server.handleClient();
+    // Parsing can return early without END/ABORT after a malformed request.
+    if (s_upload_in_progress) {
+      finish_upload(false, "Upload interrupted. Please retry.");
+    }
+    s_upload_result_ready = false;
   }
+  if (s_file_list_dirty) {
+    hide_dialog();
+    refresh_file_list();
+    s_file_list_dirty = false;
+  }
+}
+
+void file_manager_ui_refresh(void) {
+  hide_dialog();
+  refresh_file_list();
 }

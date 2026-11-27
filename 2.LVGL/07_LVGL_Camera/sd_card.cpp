@@ -114,16 +114,16 @@ void write_file(char *path, uint8_t *buf, long size) {
   }
 }
 
-void write_rgb565_to_bmp(char *path, uint8_t *buf, long size, long height, long width) {
-  if (path == NULL || buf == NULL || size == 0) {
-    Serial.println("✗ Invalid parameters for write_rgb565_to_bmp");
-    return;
+bool write_rgb565_to_bmp(const char *path, const uint8_t *buf, long size, long height, long width) {
+  if (path == NULL || buf == NULL || width != 240 || height != 240 || size < width * height * 2) {
+    Serial.println("Invalid parameters for write_rgb565_to_bmp");
+    return false;
   }
   
   File file = SD_MMC.open(path, FILE_WRITE);
   if (!file) {
-    Serial.printf("✗ Failed to create BMP file: %s\n", path);
-    return;
+    Serial.printf("Failed to create BMP file: %s\n", path);
+    return false;
   }
   
   // BMP file header (70 bytes)
@@ -138,18 +138,23 @@ void write_rgb565_to_bmp(char *path, uint8_t *buf, long size, long height, long 
   uint8_t bmp_footer[] = {0x00, 0x00};
   
   // Write BMP header
-  file.write(bmp_header, 70);
+  bool ok = file.write(bmp_header, sizeof(bmp_header)) == sizeof(bmp_header);
 
-  // BMP format requires writing rows bottom-to-top
-  for (int i = height - 1; i >= 0; i--) {
-    file.write(&buf[i * width * 2], width * 2);
+  // BMP format requires writing rows bottom-to-top.
+  for (int i = height - 1; ok && i >= 0; i--) {
+    ok = file.write(&buf[i * width * 2], width * 2) == static_cast<size_t>(width * 2);
   }
-  
-  // Write footer padding
-  file.write(bmp_footer, 2);
+  if (ok) {
+    ok = file.write(bmp_footer, sizeof(bmp_footer)) == sizeof(bmp_footer);
+  }
   file.close();
-  
-  Serial.printf("✓ BMP saved: %s (%ldx%ld)\n", path, width, height);
+  if (!ok) {
+    SD_MMC.remove(path);
+    Serial.printf("Incomplete BMP removed: %s\n", path);
+    return false;
+  }
+  Serial.printf("BMP saved: %s (%ldx%ld)\n", path, width, height);
+  return true;
 }
 
 void create_folder(char *path) {
@@ -221,12 +226,17 @@ list_link *sdcard_read_folder(char *dirname, char *extension) {
   File file = root.openNextFile();
   while (file) {
     String filename = String(file.name());
+    filename = filename.substring(filename.lastIndexOf('/') + 1);
+    String lower_name = filename;
+    lower_name.toLowerCase();
+    String suffix = String(".") + extension;
+    suffix.toLowerCase();
 
-    // Check file extension
-    if (filename.endsWith(extension)) {
+    // Keep the complete basename, including a case-insensitive extension.
+    if (!file.isDirectory() && lower_name.endsWith(suffix)) {
       list_insert_tail(head, (char *)filename.c_str());
     }
-    
+    file.close();
     file = root.openNextFile();
   }
   
@@ -246,8 +256,15 @@ list_link *list_create_node(int index, char *name) {
   }
   
   node->index_number = index;
-  memset(node->file_name, 0, FILE_NAME_LENGTH);
-  strncpy(node->file_name, name, FILE_NAME_LENGTH - 1);  // Use strncpy to prevent overflow
+  // A byte limit can cut off the extension or split a multi-byte UTF-8 character.
+  const size_t name_bytes = strlen(name) + 1;
+  node->file_name = (char *)malloc(name_bytes);
+  if (node->file_name == NULL) {
+    Serial.println("Failed to allocate filename memory");
+    free(node);
+    return NULL;
+  }
+  memcpy(node->file_name, name, name_bytes);
   node->file_prev = NULL;
   node->file_next = NULL;
   
@@ -322,6 +339,7 @@ list_link *list_destory(list_link *phead) {
   
   while (current != NULL) {
     next_node = current->file_next;
+    free(current->file_name);
     free(current);
     current = next_node;
   }

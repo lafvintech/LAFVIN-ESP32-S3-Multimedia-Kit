@@ -69,7 +69,10 @@ static bool load_bmp_from_sd(const char *name) {
     return false;
   }
 
-  String file_path = String("/picture/") + name;
+  // Accept both the basename and full paths returned by older SD core versions.
+  String filename(name);
+  filename = filename.substring(filename.lastIndexOf('/') + 1);
+  String file_path = String(PICTURE_FOLDER) + "/" + filename;
   File file = SD_MMC.open(file_path.c_str(), FILE_READ);
   if (!file) {
     Serial.printf("Failed to open BMP: %s\n", file_path.c_str());
@@ -145,6 +148,9 @@ static bool load_bmp_from_sd(const char *name) {
 
 static void picture_imgbtn_left_event_handler(lv_event_t *e) {
   if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    if (list_count_number(list_picture) == 0) {
+      return;
+    }
     Serial.println("Clicked the left button.");
     picture_index_num--;
     if (picture_index_num < 1) {
@@ -156,6 +162,9 @@ static void picture_imgbtn_left_event_handler(lv_event_t *e) {
 
 static void picture_imgbtn_right_event_handler(lv_event_t *e) {
   if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    if (list_count_number(list_picture) == 0) {
+      return;
+    }
     Serial.println("Clicked the right button.");
     picture_index_num++;
     if (picture_index_num > list_count_number(list_picture)) {
@@ -237,19 +246,34 @@ void setup_scr_picture(lvgl_picture_ui *ui) {
   picture_button_style_init(ui->picture_right);
   lv_obj_add_style(ui->picture_right, &style_pr, LV_STATE_PRESSED);
 
-  setup_list_head_picture();
-  picture_index_num = list_count_number(list_picture);
-  picture_imgbtn_display(list_find_node(list_picture, picture_index_num));
-
   lv_obj_add_event_cb(ui->picture_left, picture_imgbtn_left_event_handler, LV_EVENT_ALL, NULL);
   lv_obj_add_event_cb(ui->picture_right, picture_imgbtn_right_event_handler, LV_EVENT_ALL, NULL);
   lv_obj_add_event_cb(ui->picture_home, picture_imgbtn_home_event_handler, LV_EVENT_ALL, NULL);
 }
 
+// Re-scan on every entry so photos and remote file changes appear immediately.
+void picture_ui_refresh(void) {
+  setup_list_head_picture();
+  picture_index_num = list_count_number(list_picture);
+  // Camera filenames increase monotonically, even after deleting older photos.
+  unsigned long latest_number = 0;
+  for (list_link *node = list_picture ? list_picture->file_next : NULL;
+       node != NULL; node = node->file_next) {
+    const String name(node->file_name);
+    const String filename = name.substring(name.lastIndexOf('/') + 1);
+    const unsigned long number = strtoul(filename.c_str(), NULL, 10);
+    if (number > latest_number) {
+      latest_number = number;
+      picture_index_num = node->index_number;
+    }
+  }
+  picture_imgbtn_display(list_find_node(list_picture, picture_index_num));
+}
+
 // Update the gallery preview with the selected BMP file from the SD card.
 void picture_imgbtn_display(char *name) {
   if (name == NULL) {
-    lv_img_set_src(guider_picture_ui.picture_show, NULL);
+    lv_obj_add_flag(guider_picture_ui.picture_show, LV_OBJ_FLAG_HIDDEN);
     Serial.println("No pictures found in folder");
     return;
   }
@@ -258,12 +282,14 @@ void picture_imgbtn_display(char *name) {
   const unsigned long start_time = millis();
 
   if (!load_bmp_from_sd(name)) {
-    lv_img_set_src(guider_picture_ui.picture_show, NULL);
+    lv_obj_add_flag(guider_picture_ui.picture_show, LV_OBJ_FLAG_HIDDEN);
     Serial.println("Failed to decode BMP");
     return;
   }
 
   if (s_bmp_ready) {
+    lv_img_cache_invalidate_src(&s_bmp_img_dsc);
+    lv_obj_clear_flag(guider_picture_ui.picture_show, LV_OBJ_FLAG_HIDDEN);
     lv_img_set_src(guider_picture_ui.picture_show, &s_bmp_img_dsc);
     lv_obj_invalidate(guider_picture_ui.picture_show);
     lv_refr_now(NULL);

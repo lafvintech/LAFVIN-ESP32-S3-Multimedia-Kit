@@ -29,4 +29,11 @@ void music_ui_setup(MusicUI *ui);
 // Drive the audio engine and process deferred UI actions.
 void music_ui_loop(void);
 
+// Stop audio playback immediately.
+void music_ui_stop(void);
+
+// Preserve the current track position while a remote file transfer owns the SD card.
+bool music_ui_pause_for_transfer(void);
+void music_ui_resume_after_transfer(void);
+
 #endif

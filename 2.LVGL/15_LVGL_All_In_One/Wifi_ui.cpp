@@ -415,7 +415,6 @@ void wifi_ui_loop(void) {
     char status_buffer[96];
     snprintf(status_buffer, sizeof(status_buffer), "Status: Connected to %s", s_selected_ssid);
     set_status_text(status_buffer);
-    all_in_one_notify_wifi_connected();
 
     const String ip = WiFi.localIP().toString();
     char ip_buffer[64];

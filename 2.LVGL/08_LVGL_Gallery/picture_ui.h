@@ -17,5 +17,6 @@ extern lvgl_picture_ui guider_picture_ui;
 
 void setup_scr_picture(lvgl_picture_ui *ui);
 void picture_imgbtn_display(char *name);
+void picture_ui_refresh(void);
 
 #endif

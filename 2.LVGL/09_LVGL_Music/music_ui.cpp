@@ -149,17 +149,25 @@ static bool music_ui_play_index(int index) {
 
   s_audio.stopSong();
 
-  String file_path = String(MUSIC_FOLDER) + "/" + file_name;
-  Serial.printf("Loading music: %s\n", file_path.c_str());
+  String filename(file_name);
+  filename = filename.substring(filename.lastIndexOf('/') + 1);
+  const String file_path = String(MUSIC_FOLDER) + "/" + filename;
+  Serial.printf("Loading music: %s (filename: %u UTF-8 bytes)\n",
+                file_path.c_str(), static_cast<unsigned>(filename.length()));
 
-  s_audio.connecttoFS(SD_MMC, file_path.c_str());
+  const bool opened = s_audio.connecttoFS(SD_MMC, file_path.c_str());
   s_music_index = index;
-  s_track_loaded = true;
-  s_music_paused = false;
+  s_track_loaded = opened;
+  s_music_paused = !opened;
 
-  music_ui_set_title_text(file_name);
+  if (opened) {
+    music_ui_set_title_text(filename.c_str());
+  } else {
+    Serial.printf("Unable to start MP3: %s\n", file_path.c_str());
+    music_ui_set_title_text((String("Unable to open: ") + filename).c_str());
+  }
   music_ui_refresh_controls();
-  return true;
+  return opened;
 }
 
 // Prime the screen with the first file name without auto-playing it.
@@ -368,6 +376,30 @@ void music_ui_setup(MusicUI *ui) {
 
   // Apply the initial title and button state based on the /music folder.
   music_ui_prepare_first_track();
+}
+
+void music_ui_stop(void) {
+  s_audio.stopSong();
+  s_track_loaded = false;
+  s_music_paused = true;
+}
+
+bool music_ui_pause_for_transfer(void) {
+  if (!s_track_loaded || s_music_paused) {
+    return false;
+  }
+  s_audio.pauseResume();
+  s_music_paused = true;
+  music_ui_refresh_controls();
+  return true;
+}
+
+void music_ui_resume_after_transfer(void) {
+  if (s_track_loaded && s_music_paused) {
+    s_audio.pauseResume();
+    s_music_paused = false;
+    music_ui_refresh_controls();
+  }
 }
 
 void music_ui_loop(void) {

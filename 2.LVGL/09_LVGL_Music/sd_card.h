@@ -24,16 +24,11 @@
 #define LOGO_FOLDER     "/logo"      // Logo folder
 
 /***************************************************************************************
- * File System Constants
- ***************************************************************************************/
-#define FILE_NAME_LENGTH  255        // Max file name length
-
-/***************************************************************************************
  * Linked List Node Structure
  ***************************************************************************************/
 typedef struct Link{
   int index_number;                  // Node index
-  char file_name[FILE_NAME_LENGTH];  // File name
+  char *file_name;                  // Owned, complete UTF-8 filename (including terminator)
   struct Link *file_prev;            // Pointer to previous node
   struct Link *file_next;            // Pointer to next node
 }list_link;
@@ -96,8 +91,9 @@ void write_file(char *path, uint8_t *buf, long size);
  * @param size   Data size in bytes
  * @param height Image height
  * @param width  Image width
+ * @return true only when the complete BMP was written
  */
-void write_rgb565_to_bmp(char *path, uint8_t *buf, long size, long height, long width);
+bool write_rgb565_to_bmp(const char *path, const uint8_t *buf, long size, long height, long width);
 
 /**
  * @brief Create a folder if it does not exist

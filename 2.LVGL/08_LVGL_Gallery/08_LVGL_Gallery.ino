@@ -43,6 +43,7 @@ void setup() {
   // 3. Build the gallery screen and make it active.
   Serial.println("[3/3] Setting up picture gallery UI...");
   setup_scr_picture(&guider_picture_ui);
+  picture_ui_refresh();
   lv_scr_load(guider_picture_ui.picture);
   Serial.println();
 

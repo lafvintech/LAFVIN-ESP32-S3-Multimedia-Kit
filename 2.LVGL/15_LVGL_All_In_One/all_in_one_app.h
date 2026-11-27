@@ -36,4 +36,9 @@ void all_in_one_set_home_page(uint8_t page_index);
 // Notify the shell that WiFi is ready so NTP can start syncing time.
 void all_in_one_notify_wifi_connected(void);
 
+// Called only by the synchronous HTTP handlers on the Arduino/LVGL main task.
+bool all_in_one_file_transfer_begin(const char *name, bool upload);
+void all_in_one_file_transfer_update(size_t done, size_t total, bool complete = false);
+void all_in_one_file_transfer_end(void);
+
 #endif

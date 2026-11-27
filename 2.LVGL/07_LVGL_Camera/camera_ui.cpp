@@ -63,6 +63,7 @@ static void camera_copy_rgb565_for_display(const camera_fb_t *frame, uint8_t *ds
   const int width = min((int)frame->width, VIDEO_WIDTH);
   const int height = min((int)frame->height, VIDEO_HEIGHT);
 
+  // 180° rotation: (x,y) -> (width-1-x, height-1-y)
   memset(dst, 0, CAMERA_PREVIEW_BUFFER_SIZE);
 
   for (int y = 0; y < height; ++y) {
@@ -126,7 +127,7 @@ void camera_task_loop(void *pvParameters) {
 }
 
 void camera_task_start(void) {
-  if (s_task_running) {
+  if (camera_task_is_running()) {
     Serial.println("Camera task is already running");
     return;
   }
@@ -162,11 +163,13 @@ void camera_task_start(void) {
 }
 
 bool camera_task_stop(void) {
-  if (!s_task_running) {
+  taskENTER_CRITICAL(&s_preview_lock);
+  const bool already_stopped = s_camera_task_handle == NULL;
+  s_task_running = false;
+  taskEXIT_CRITICAL(&s_preview_lock);
+  if (already_stopped) {
     return true;
   }
-
-  s_task_running = false;
 
   uint32_t timeout_ms = TASK_STOP_TIMEOUT_MS;
   while (timeout_ms > 0) {
@@ -188,7 +191,10 @@ bool camera_task_stop(void) {
 }
 
 bool camera_task_is_running(void) {
-  return s_task_running;
+  taskENTER_CRITICAL(&s_preview_lock);
+  const bool running = s_task_running || s_camera_task_handle != NULL;
+  taskEXIT_CRITICAL(&s_preview_lock);
+  return running;
 }
 
 void camera_ui_refresh_preview(void) {
@@ -228,18 +234,36 @@ static void on_photo_button_clicked(lv_event_t *event) {
   if (frame != NULL && frame->buf != NULL) {
     camera_swap_rgb565_bytes(frame->buf, frame->len);
 
-    int photo_index = list_count_number(list_picture);
-    if (photo_index != -1) {
-      String file_path = String(PICTURE_FOLDER) + "/" + String(++photo_index) + ".bmp";
-      write_rgb565_to_bmp(
-        (char *)file_path.c_str(),
+    // The gallery may never have been opened; create and scan the folder now.
+    setup_list_head_picture();
+    unsigned long photo_index = 0;
+    for (list_link *node = list_picture ? list_picture->file_next : NULL;
+         node != NULL; node = node->file_next) {
+      String name(node->file_name);
+      name = name.substring(name.lastIndexOf('/') + 1);
+      const unsigned long number = strtoul(name.c_str(), NULL, 10);
+      if (number > photo_index) {
+        photo_index = number;
+      }
+    }
+    String filename;
+    String file_path;
+    do {
+      filename = String(++photo_index) + ".bmp";
+      file_path = String(PICTURE_FOLDER) + "/" + filename;
+    } while (SD_MMC.exists(file_path.c_str()));
+    if (write_rgb565_to_bmp(
+        file_path.c_str(),
         frame->buf,
         frame->len,
         frame->height,
         frame->width
-      );
-      list_insert_tail(list_picture, (char *)file_path.c_str());
+      )) {
+      // Store a basename, matching directory scans and the gallery loader.
+      list_insert_tail(list_picture, (char *)filename.c_str());
       Serial.printf("Photo saved: %s\n", file_path.c_str());
+    } else {
+      Serial.printf("Photo save failed: %s\n", file_path.c_str());
     }
 
     esp_camera_fb_return(frame);

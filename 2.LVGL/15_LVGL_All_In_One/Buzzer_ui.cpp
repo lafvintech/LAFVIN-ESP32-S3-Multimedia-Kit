@@ -339,5 +339,9 @@ void buzzer_ui_setup(BuzzerUI *ui) {
   Serial.println("Buzzer UI ready.");
 }
 
+void buzzer_ui_stop(void) {
+  buzzer_stop_output();
+}
+
 void buzzer_ui_loop(void) {
 }

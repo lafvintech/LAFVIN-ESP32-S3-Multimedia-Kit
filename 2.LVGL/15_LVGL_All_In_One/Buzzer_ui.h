@@ -25,5 +25,6 @@ extern BuzzerUI g_buzzer_ui;
 
 void buzzer_ui_setup(BuzzerUI *ui);
 void buzzer_ui_loop(void);
+void buzzer_ui_stop(void);
 
 #endif

@@ -132,7 +132,7 @@ void build_header(lv_obj_t *parent, lv_obj_t **time_label, lv_obj_t **wifi_label
 
   *time_label = lv_label_create(parent);
   lv_obj_set_pos(*time_label, kHeaderTimeX, kHeaderTimeY);
-  lv_label_set_text(*time_label, "--:--");
+  lv_label_set_text(*time_label, "12:34");
   lv_obj_add_style(*time_label, &s_time_style, LV_PART_MAIN);
 
   *wifi_label = lv_label_create(parent);
@@ -271,8 +271,8 @@ void home_ui_show_page(uint8_t page_index, bool animate) {
 }
 
 void home_ui_set_time_text(const char *text) {
-  // Fall back to a placeholder while NTP is not ready yet.
-  const char *safe_text = (text != nullptr && text[0] != '\0') ? text : "--:--";
+  // Show the requested default until the network clock is ready.
+  const char *safe_text = (text != nullptr && text[0] != '\0') ? text : "12:34";
   if (g_home_ui.time_label_page_one != nullptr) {
     lv_label_set_text(g_home_ui.time_label_page_one, safe_text);
   }

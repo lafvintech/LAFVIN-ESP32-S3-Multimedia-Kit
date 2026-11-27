@@ -27,5 +27,6 @@ extern FileManagerUI g_file_manager_ui;
 void file_manager_ui_setup(FileManagerUI *ui);
 void file_manager_ui_loop(void);
 void file_manager_ui_background_loop(void);
+void file_manager_ui_refresh(void);
 
 #endif
